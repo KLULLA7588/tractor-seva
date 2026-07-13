@@ -1,0 +1,203 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', sans-serif;
+    font-size: 15.5px;
+  }
+
+  body {
+    @apply bg-bg-light text-text-black antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Oswald', sans-serif;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  * {
+    @apply border-border-light;
+  }
+}
+
+@layer utilities {
+  .font-mono-code {
+    font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+    font-size: 0.85em;
+    letter-spacing: -0.01em;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.15s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-float {
+    animation: float 10s ease-in-out infinite;
+  }
+
+  .animate-marquee {
+    animation: marquee 40s linear infinite;
+  }
+
+  .animate-slide-down {
+    animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes slideInRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateX(-3%); }
+    50% { transform: translateX(3%); }
+  }
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; max-height: 0; }
+    to { opacity: 1; max-height: 500px; }
+  }
+
+  .marquee-fade {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+  }
+
+  .blueprint-grid {
+    background-image:
+      linear-gradient(rgba(23, 34, 99, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(23, 34, 99, 0.07) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  .hairline {
+    @apply border-b border-border-light;
+  }
+}
+
+/* Sonar ping animation for hotspots */
+@keyframes sonarPing {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+.sonar-ring {
+  animation: sonarPing 2.5s ease-out infinite;
+}
+
+.sonar-ring-delayed-1 {
+  animation: sonarPing 2.5s ease-out infinite;
+  animation-delay: 0.8s;
+}
+
+.sonar-ring-delayed-2 {
+  animation: sonarPing 2.5s ease-out infinite;
+  animation-delay: 1.6s;
+}
+
+/* Skeleton loading animation */
+@layer utilities {
+  .skeleton {
+    @apply animate-pulse rounded bg-bg-inset;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F7F8FC;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(23,34,99,0.16);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(23,34,99,0.28);
+}
+
+/* Google Translate - hide default UI */
+.goog-te-banner-frame.skiptranslate,
+.goog-te-gadget-icon,
+.goog-logo-link,
+.goog-te-balloon-frame {
+  display: none !important;
+}
+
+.goog-te-gadget {
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.goog-te-gadget .goog-te-combo {
+  visibility: hidden;
+}
+
+#google_translate_element {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
+}
+
+.goog-te-spinner-pos,
+.goog-te-spinner {
+  display: none !important;
+}
