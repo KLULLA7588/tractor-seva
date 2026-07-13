@@ -37,8 +37,13 @@ for (const dir of uploadDirs) {
 }
 
 // Middleware
+// Middleware
 app.use(cors({
-  origin: frontendUrl.split(',').map((s) => s.trim()),
+  origin: [
+    ...frontendUrl.split(',').map((s) => s.trim()),
+    'https://tractor-seva.vercel.app', // Your frontend live link
+    'http://localhost:5173'            // Your frontend local link
+  ],
   credentials: true,
 }));
 app.use(express.json());
