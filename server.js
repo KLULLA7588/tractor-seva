@@ -44,13 +44,14 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get('/', (req, res) => {
+  res.json({ success: true, message: 'Tractor Seva API is running' });
+});
+
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Health check
-app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'Tractor Seva API is running' });
-});
 
 // PUBLIC routes (no auth required)
 app.use('/api', publicRoutes);
