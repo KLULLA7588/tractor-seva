@@ -47,7 +47,7 @@ export default function CatalogPage() {
             {error && (
               <div className="mt-10 rounded-lg border border-brand-red/20 bg-brand-red-light p-6 text-center">
                 <p className="text-sm text-brand-red">
-                  {error}. Make sure the backend is running on port 5000.
+                  {error}
                 </p>
               </div>
             )}
