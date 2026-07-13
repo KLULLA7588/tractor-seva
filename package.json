@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "nodemon server.js",
+    "start": "node server.js",
     "seed": "node migrations/seed-admin.js",
     "db:init": "node migrations/init-db.js"
   },
