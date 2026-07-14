@@ -16,7 +16,7 @@ const SECTION_FIELDS = ['id', 'harvester_id', 'parent_id'];
  */
 export async function getSections(req, res, next) {
   try {
-    const { harvester_id, parent_only } = req.query;
+    const { harvester_id, parent_only, parent_id } = req.query;
 
     if (!harvester_id) {
       throw new BadRequestError('INVALID_INPUT', 'harvester_id query parameter is required');
@@ -26,6 +26,23 @@ export async function getSections(req, res, next) {
     const onlyParents = parent_only === 'true' || parent_only === true;
 
     let mainSections;
+
+    if (parent_id) {
+      // NEW: return only the subsections belonging to this parent
+      validateUUID(parent_id, 'parent_id');
+
+      const [subsections] = await pool.query(
+        `SELECT id, harvester_id, parent_id, name, icon, created_at
+         FROM sections
+         WHERE harvester_id = ? AND parent_id = ?
+         ORDER BY created_at ASC`,
+        [uuidToBuffer(harvester_id), uuidToBuffer(parent_id)]
+      );
+
+      const sections = subsections.map((s) => convertRow(s, SECTION_FIELDS));
+      return res.json({ success: true, sections });
+    }
+
     if (onlyParents) {
       [mainSections] = await pool.query(
         `SELECT id, harvester_id, parent_id, name, icon, created_at
