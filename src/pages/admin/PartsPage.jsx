@@ -181,7 +181,7 @@ export default function PartsPage() {
                 }}
               />
             ) : (
-              <DiagramViewer src={diagram.image_path} hotspots={hotspots} className="w-full" />
+              <DiagramViewer src={diagram.image_path} hotspots={hotspots} className="w-full" interactive />
             )}
           </div>
 
