@@ -35,11 +35,10 @@ export function truncate(text, max = 50) {
  */
 export function imageUrl(path) {
   if (!path) return '';
-  if (path.startsWith('http')) return path;
+  if (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:')) return path;
   const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000';
   return `${baseUrl}${path}`;
 }
-
 /**
  * Format a phone number for display (10-digit Indian format).
  * @param {string} phone - Raw phone number
