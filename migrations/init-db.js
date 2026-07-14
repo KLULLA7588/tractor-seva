@@ -17,7 +17,7 @@ async function initDatabase() {
   const port = parseInt(process.env.DB_PORT || '3306', 10);
   const user = process.env.DB_USER || 'root';
   const password = process.env.DB_PASSWORD || '';
-  const database = process.env.DB_NAME || 'tractor_seva';
+  const database = process.env.DB_NAME || 'tractordb';
 
   console.log(`Connecting to MySQL at ${host}:${port} as ${user}...`);
 
