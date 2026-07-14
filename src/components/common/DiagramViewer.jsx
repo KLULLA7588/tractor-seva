@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { imageUrl } from '../../lib/utils';
 
 export default function DiagramViewer({ src, hotspots = [], onHotspotClick, interactive = false }) {
   const containerRef = useRef(null);
@@ -106,7 +107,7 @@ export default function DiagramViewer({ src, hotspots = [], onHotspotClick, inte
           }}
         >
           <img
-            src={src}
+            src={imageUrl(src)}
             alt="Diagram"
             className="max-w-full max-h-full object-contain pointer-events-none select-none bg-white rounded-lg"
             onLoad={() => setImageLoaded(true)}
