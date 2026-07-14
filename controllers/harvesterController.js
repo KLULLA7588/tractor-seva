@@ -23,10 +23,10 @@ export async function getAllHarvesters(req, res, next) {
 
     res.json({ success: true, harvesters });
   } catch (err) {
-    next(err);
-  }
+  console.error(err);
+  next(err);
 }
-
+}
 /**
  * GET /api/harvesters/:id (public) or GET /api/admin/harvesters/:id (auth)
  * Get a single harvester by ID.
