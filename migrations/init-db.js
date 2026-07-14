@@ -1,6 +1,6 @@
 /**
  * Database initialization script.
- * Creates the tractor_seva database and all tables if they don't exist.
+ * Creates the database (name from DB_NAME env var) and all tables if they don't exist.
  * Run with: npm run db:init
  */
 import 'dotenv/config';
@@ -21,8 +21,14 @@ async function initDatabase() {
 
   console.log(`Connecting to MySQL at ${host}:${port} as ${user}...`);
 
-  // Connect without a database to create it first
+  // Connect without a database first, since it may not exist yet
   const connection = await mysql.createConnection({ host, port, user, password });
+
+  // Create the database using the name from .env (DB_NAME), not whatever
+  // might be hardcoded inside the schema file
+  await connection.query(`CREATE DATABASE IF NOT EXISTS \`${database}\`;`);
+  await connection.changeUser({ database });
+  console.log(`Using database "${database}".`);
 
   const schemaPath = path.join(__dirname, '..', 'database-schema.sql');
   const sql = fs.readFileSync(schemaPath, 'utf8');
@@ -31,7 +37,10 @@ async function initDatabase() {
   const statements = sql
     .split(/;\s*\n/)
     .map((s) => s.trim())
-    .filter((s) => s.length > 0 && !s.startsWith('--'));
+    .filter((s) => s.length > 0 && !s.startsWith('--'))
+    // Skip any CREATE DATABASE / USE statements from the schema file itself,
+    // since the database name is already handled above from .env
+    .filter((s) => !/^CREATE\s+DATABASE/i.test(s) && !/^USE\s+/i.test(s));
 
   for (const statement of statements) {
     await connection.query(statement);
