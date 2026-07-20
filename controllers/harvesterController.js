@@ -66,8 +66,8 @@ export async function createHarvester(req, res, next) {
     let imageUrl = null;
 
     if (req.file) {
-      imageUrl = `/uploads/harvesters/${req.file.filename}`;
-    }
+  imageUrl = req.file.location;
+}
 
     await pool.query(
       'INSERT INTO harvesters (id, name, image_url) VALUES (?, ?, ?)',
@@ -109,8 +109,8 @@ export async function updateHarvester(req, res, next) {
     let imageUrl = existing[0].image_url;
 
     if (req.file) {
-      imageUrl = `/uploads/harvesters/${req.file.filename}`;
-    }
+  imageUrl = req.file.location;
+}
 
     await pool.query(
       'UPDATE harvesters SET name = ?, image_url = ? WHERE id = ?',

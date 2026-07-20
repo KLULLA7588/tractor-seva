@@ -3,15 +3,10 @@
  * Handles upload, retrieval, and deletion of section/subsection diagrams.
  */
 import pool from '../config/database.js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import s3 from '../utils/utils/s3.js';
 import { generateUUID, uuidToBuffer, bufferToUuid, convertRow } from '../utils/uuid.js';
 import { validateRequired, validateUUID } from '../utils/validators.js';
 import { NotFoundError, BadRequestError } from '../utils/errors.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const IMAGE_FIELDS = ['id', 'section_id'];
 
@@ -41,18 +36,21 @@ export async function uploadDiagram(req, res, next) {
       throw new NotFoundError('SECTION_NOT_FOUND', 'Section not found');
     }
 
-    // Delete existing diagram for this section (file + record)
+    // Delete existing diagram for this section (S3 object + record)
     const [existing] = await pool.query(
       'SELECT id, image_path FROM images WHERE section_id = ?',
       [uuidToBuffer(section_id)]
     );
 
     if (existing.length > 0) {
-      // Delete old file from disk
+      // Delete old file from S3
       for (const img of existing) {
-        const oldPath = path.join(__dirname, '..', img.image_path);
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
+        const key = img.image_path.split('.amazonaws.com/')[1];
+        if (key) {
+          await s3.deleteObject({
+            Bucket: process.env.AWS_BUCKET_NAME,
+            Key: key,
+          }).promise();
         }
       }
       // Delete old DB record
@@ -61,7 +59,7 @@ export async function uploadDiagram(req, res, next) {
 
     // Insert new image record
     const id = generateUUID();
-    const imagePath = `/uploads/diagrams/${req.file.filename}`;
+    const imagePath = req.file.location;
 
     await pool.query(
       'INSERT INTO images (id, section_id, image_path) VALUES (?, ?, ?)',
@@ -121,7 +119,7 @@ export async function getDiagram(req, res, next) {
 
 /**
  * DELETE /api/admin/diagrams/:id
- * Delete a diagram by image ID. Removes file from disk and DB record.
+ * Delete a diagram by image ID. Removes S3 object and DB record.
  */
 export async function deleteDiagram(req, res, next) {
   try {
@@ -137,10 +135,13 @@ export async function deleteDiagram(req, res, next) {
       throw new NotFoundError('IMAGE_NOT_FOUND', 'Diagram not found');
     }
 
-    // Delete file from disk
-    const filePath = path.join(__dirname, '..', rows[0].image_path);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    // Delete file from S3
+    const key = rows[0].image_path.split('.amazonaws.com/')[1];
+    if (key) {
+      await s3.deleteObject({
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: key,
+      }).promise();
     }
 
     await pool.query('DELETE FROM images WHERE id = ?', [uuidToBuffer(id)]);
