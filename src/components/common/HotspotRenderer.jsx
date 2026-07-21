@@ -3,6 +3,7 @@ export default function HotspotRenderer({ hotspots, onHotspotClick, interactive 
     <>
       {hotspots.map((hotspot, index) => {
         const label = hotspot.label || hotspot.serial_no || index + 1;
+        const radius = parseFloat(hotspot.radius) || 14;
         return (
           <div
             key={hotspot.id || index}
@@ -19,7 +20,8 @@ export default function HotspotRenderer({ hotspots, onHotspotClick, interactive 
                   onHotspotClick(hotspot);
                 }
               }}
-              className={`relative flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold shadow-button transition-all duration-200 ${
+              style={{ width: `${radius * 2}px`, height: `${radius * 2}px` }}
+              className={`relative flex items-center justify-center rounded-full text-xs font-bold shadow-button transition-all duration-200 ${
                 interactive
                   ? 'cursor-pointer bg-brand-navy text-white hover:scale-110 hover:bg-brand-red'
                   : 'cursor-pointer bg-brand-navy/90 text-white hover:scale-110'
