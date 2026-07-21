@@ -22,7 +22,6 @@ const router = express.Router();
 const storage = multerS3({
   s3: s3,
   bucket: process.env.AWS_BUCKET_NAME,
-  acl: 'public-read',
   contentType: multerS3.AUTO_CONTENT_TYPE,
   key: (req, file, cb) => {
     const ext = path.extname(file.originalname);
