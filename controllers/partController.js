@@ -30,6 +30,7 @@ export async function createPart(req, res, next) {
       image_id,
       x_coordinate,
       y_coordinate,
+      radius,
     } = req.body;
 
     validateRequired(req.body, ['part_no']);
@@ -98,20 +99,22 @@ export async function createPart(req, res, next) {
       }
 
       const coordId = generateUUID();
+      const finalRadius = radius !== undefined ? parseInt(radius, 10) : 14;
       await pool.query(
-        `INSERT INTO image_coordinates (id, part_id, image_id, x_coordinate, y_coordinate)
-         VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO image_coordinates (id, part_id, image_id, x_coordinate, y_coordinate, radius)
+         VALUES (?, ?, ?, ?, ?, ?)`,
         [
           uuidToBuffer(coordId),
           uuidToBuffer(partId),
           uuidToBuffer(image_id),
           parseFloat(x_coordinate),
           parseFloat(y_coordinate),
+          finalRadius,
         ]
       );
 
       const [coordRows] = await pool.query(
-        'SELECT id, part_id, image_id, x_coordinate, y_coordinate, created_at FROM image_coordinates WHERE id = ?',
+        'SELECT id, part_id, image_id, x_coordinate, y_coordinate, radius, created_at FROM image_coordinates WHERE id = ?',
         [uuidToBuffer(coordId)]
       );
 
@@ -146,7 +149,7 @@ export async function getPartsByImage(req, res, next) {
 
     const [rows] = await pool.query(
       `SELECT p.id, p.serial_no, p.part_no, p.kubota_part_no, p.description, p.quantity, p.fm_code, p.created_at,
-              ic.id AS coord_id, ic.x_coordinate, ic.y_coordinate
+              ic.id AS coord_id, ic.x_coordinate, ic.y_coordinate, ic.radius
        FROM parts p
        INNER JOIN image_coordinates ic ON ic.part_id = p.id
        WHERE ic.image_id = ?
@@ -160,6 +163,7 @@ export async function getPartsByImage(req, res, next) {
         id: bufferToUuid(r.coord_id),
         x_coordinate: parseFloat(r.x_coordinate),
         y_coordinate: parseFloat(r.y_coordinate),
+        radius: r.radius !== null && r.radius !== undefined ? parseInt(r.radius, 10) : 14,
       };
       return part;
     });
@@ -240,14 +244,14 @@ export async function updateHotspot(req, res, next) {
     const { coordinate_id } = req.params;
     validateUUID(coordinate_id, 'coordinate_id');
 
-    const { x_coordinate, y_coordinate } = req.body;
+    const { x_coordinate, y_coordinate, radius } = req.body;
 
     validateRequired(req.body, ['x_coordinate', 'y_coordinate']);
     validateCoordinate(x_coordinate, 'x_coordinate');
     validateCoordinate(y_coordinate, 'y_coordinate');
 
     const [existing] = await pool.query(
-      'SELECT id FROM image_coordinates WHERE id = ?',
+      'SELECT id, radius FROM image_coordinates WHERE id = ?',
       [uuidToBuffer(coordinate_id)]
     );
 
@@ -255,13 +259,15 @@ export async function updateHotspot(req, res, next) {
       throw new NotFoundError('PART_NOT_FOUND', 'Hotspot not found');
     }
 
+    const finalRadius = radius !== undefined ? parseInt(radius, 10) : existing[0].radius;
+
     await pool.query(
-      'UPDATE image_coordinates SET x_coordinate = ?, y_coordinate = ? WHERE id = ?',
-      [parseFloat(x_coordinate), parseFloat(y_coordinate), uuidToBuffer(coordinate_id)]
+      'UPDATE image_coordinates SET x_coordinate = ?, y_coordinate = ?, radius = ? WHERE id = ?',
+      [parseFloat(x_coordinate), parseFloat(y_coordinate), finalRadius, uuidToBuffer(coordinate_id)]
     );
 
     const [rows] = await pool.query(
-      'SELECT id, part_id, image_id, x_coordinate, y_coordinate, created_at FROM image_coordinates WHERE id = ?',
+      'SELECT id, part_id, image_id, x_coordinate, y_coordinate, radius, created_at FROM image_coordinates WHERE id = ?',
       [uuidToBuffer(coordinate_id)]
     );
 
