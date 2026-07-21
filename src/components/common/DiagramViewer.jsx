@@ -17,16 +17,18 @@ export default function DiagramViewer({ src, hotspots = [], onHotspotClick, inte
   const maxZoom = 3;
   const zoomStep = 0.2;
 
-  // Measure the actual rendered image box (accounts for object-contain letterboxing)
+  // Measure the image's LAYOUT box (offset*), not its on-screen box.
+  // offsetLeft/offsetTop/offsetWidth/offsetHeight are unaffected by the
+  // CSS transform (scale/translate) applied to wrapperRef, so hotspots
+  // stay correctly pinned to the image at any zoom/pan level.
   const measureImage = () => {
     if (!imageRef.current || !wrapperRef.current) return;
-    const imgRect = imageRef.current.getBoundingClientRect();
-    const wrapperRect = wrapperRef.current.getBoundingClientRect();
+    const img = imageRef.current;
     setImgBox({
-      width: imgRect.width,
-      height: imgRect.height,
-      left: imgRect.left - wrapperRect.left,
-      top: imgRect.top - wrapperRect.top,
+      width: img.offsetWidth,
+      height: img.offsetHeight,
+      left: img.offsetLeft,
+      top: img.offsetTop,
     });
   };
 
