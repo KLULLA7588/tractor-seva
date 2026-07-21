@@ -153,7 +153,7 @@ export async function getPartsByImage(req, res, next) {
        FROM parts p
        INNER JOIN image_coordinates ic ON ic.part_id = p.id
        WHERE ic.image_id = ?
-       ORDER BY p.serial_no ASC`,
+       ORDER BY CAST(p.serial_no AS UNSIGNED) ASC`,
       [uuidToBuffer(imageId)]
     );
 
