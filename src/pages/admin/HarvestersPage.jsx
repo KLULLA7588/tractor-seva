@@ -16,17 +16,16 @@ export default function HarvestersPage() {
 
   const harvesters = data?.harvesters || [];
 
-  const handleDelete = async () => {
-    try {
-      await api.delete(`/api/admin/harvesters/${deleteId}`);
-      toast.success('Harvester deleted');
-      setDeleteId(null);
-      refetch();
-    } catch (err) {
-      toast.error(err.message);
-    }
-  };
-
+ const handleDelete = async () => {
+  try {
+    await api.delete(`/admin/harvesters/${deleteId}`);
+    toast.success('Harvester deleted');
+    setDeleteId(null);
+    refetch();
+  } catch (err) {
+    toast.error(err.message);
+  }
+};
   return (
     <div>
       <div className="flex items-center justify-between">
