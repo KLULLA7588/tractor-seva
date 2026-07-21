@@ -5,15 +5,37 @@ import { imageUrl } from '../../lib/utils';
 export default function DiagramViewer({ src, hotspots = [], onHotspotClick, interactive = false }) {
   const containerRef = useRef(null);
   const imageRef = useRef(null);
+  const wrapperRef = useRef(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imgBox, setImgBox] = useState({ width: 0, height: 0, left: 0, top: 0 });
 
   const minZoom = 0.5;
   const maxZoom = 3;
   const zoomStep = 0.2;
+
+  // Measure the actual rendered image box (accounts for object-contain letterboxing)
+  const measureImage = () => {
+    if (!imageRef.current || !wrapperRef.current) return;
+    const imgRect = imageRef.current.getBoundingClientRect();
+    const wrapperRect = wrapperRef.current.getBoundingClientRect();
+    setImgBox({
+      width: imgRect.width,
+      height: imgRect.height,
+      left: imgRect.left - wrapperRect.left,
+      top: imgRect.top - wrapperRect.top,
+    });
+  };
+
+  useEffect(() => {
+    if (!imageLoaded) return;
+    measureImage();
+    window.addEventListener('resize', measureImage);
+    return () => window.removeEventListener('resize', measureImage);
+  }, [imageLoaded]);
 
   // Handle mouse wheel zoom
   useEffect(() => {
@@ -95,7 +117,7 @@ export default function DiagramViewer({ src, hotspots = [], onHotspotClick, inte
       {/* Fixed size diagram container */}
       <div className="relative flex-1 min-h-[400px] md:min-h-[600px] lg:min-h-[700px] overflow-hidden cursor-grab active:cursor-grabbing bg-black flex items-center justify-center">
         <div
-          ref={imageRef}
+          ref={wrapperRef}
           className="relative flex items-center justify-center"
           onMouseDown={handleMouseDown}
           style={{
@@ -107,16 +129,20 @@ export default function DiagramViewer({ src, hotspots = [], onHotspotClick, inte
           }}
         >
           <img
+            ref={imageRef}
             src={imageUrl(src)}
             alt="Diagram"
             className="max-w-full max-h-full object-contain pointer-events-none select-none bg-white rounded-lg"
-            onLoad={() => setImageLoaded(true)}
+            onLoad={() => {
+              setImageLoaded(true);
+              measureImage();
+            }}
             style={{
               filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.3))',
             }}
           />
 
-          {/* Hotspots */}
+          {/* Hotspots — positioned relative to the actual image box, not the wrapper */}
           {interactive &&
             hotspots.map((hotspot) => (
               <button
@@ -124,8 +150,8 @@ export default function DiagramViewer({ src, hotspots = [], onHotspotClick, inte
                 onClick={() => handleHotspotClick(hotspot)}
                 className="absolute w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-brand-navy text-white rounded-full border-2 border-white shadow-lg hover:bg-brand-navy-light hover:scale-110 transition-all cursor-pointer text-xs md:text-sm font-bold"
                 style={{
-                  left: `${hotspot.x_coordinate}%`,
-                  top: `${hotspot.y_coordinate}%`,
+                  left: `${imgBox.left + (hotspot.x_coordinate / 100) * imgBox.width}px`,
+                  top: `${imgBox.top + (hotspot.y_coordinate / 100) * imgBox.height}px`,
                   transform: 'translate(-50%, -50%)',
                 }}
                 title={hotspot.label}
@@ -145,7 +171,6 @@ export default function DiagramViewer({ src, hotspots = [], onHotspotClick, inte
 
       {/* Zoom Controls */}
       <div className="absolute right-4 bottom-20 md:bottom-24 flex flex-col gap-2">
-        {/* Zoom In */}
         <button
           onClick={handleZoomIn}
           disabled={zoom >= maxZoom}
@@ -155,7 +180,6 @@ export default function DiagramViewer({ src, hotspots = [], onHotspotClick, inte
           <ZoomIn className="w-5 h-5 md:w-6 md:h-6" />
         </button>
 
-        {/* Zoom Out */}
         <button
           onClick={handleZoomOut}
           disabled={zoom <= minZoom}
@@ -165,7 +189,6 @@ export default function DiagramViewer({ src, hotspots = [], onHotspotClick, inte
           <ZoomOut className="w-5 h-5 md:w-6 md:h-6" />
         </button>
 
-        {/* Reset */}
         <button
           onClick={handleReset}
           className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 bg-gray-400 hover:bg-gray-500 text-white rounded-lg shadow-lg transition-all"
