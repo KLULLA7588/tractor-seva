@@ -4,6 +4,7 @@
  */
 import pool from '../config/database.js';
 import s3 from '../utils/utils/s3.js';
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { generateUUID, uuidToBuffer, bufferToUuid, convertRow } from '../utils/uuid.js';
 import { validateRequired, validateUUID } from '../utils/validators.js';
 import { NotFoundError, BadRequestError } from '../utils/errors.js';
@@ -47,10 +48,10 @@ export async function uploadDiagram(req, res, next) {
       for (const img of existing) {
         const key = img.image_path.split('.amazonaws.com/')[1];
         if (key) {
-          await s3.deleteObject({
+          await s3.send(new DeleteObjectCommand({
             Bucket: process.env.AWS_BUCKET_NAME,
             Key: key,
-          }).promise();
+          }));
         }
       }
       // Delete old DB record
@@ -138,10 +139,10 @@ export async function deleteDiagram(req, res, next) {
     // Delete file from S3
     const key = rows[0].image_path.split('.amazonaws.com/')[1];
     if (key) {
-      await s3.deleteObject({
+      await s3.send(new DeleteObjectCommand({
         Bucket: process.env.AWS_BUCKET_NAME,
         Key: key,
-      }).promise();
+      }));
     }
 
     await pool.query('DELETE FROM images WHERE id = ?', [uuidToBuffer(id)]);
