@@ -146,21 +146,26 @@ export default function DiagramViewer({ src, hotspots = [], onHotspotClick, inte
 
           {/* Hotspots — positioned relative to the actual image box, not the wrapper */}
           {interactive &&
-            hotspots.map((hotspot) => (
-              <button
-                key={hotspot.id}
-                onClick={() => handleHotspotClick(hotspot)}
-                className="absolute w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-brand-navy text-white rounded-full border-2 border-white shadow-lg hover:bg-brand-navy-light hover:scale-110 transition-all cursor-pointer text-xs md:text-sm font-bold"
-                style={{
-                  left: `${imgBox.left + (hotspot.x_coordinate / 100) * imgBox.width}px`,
-                  top: `${imgBox.top + (hotspot.y_coordinate / 100) * imgBox.height}px`,
-                  transform: 'translate(-50%, -50%)',
-                }}
-                title={hotspot.label}
-              >
-                {hotspot.label}
-              </button>
-            ))}
+            hotspots.map((hotspot) => {
+              const radius = hotspot.radius || 14;
+              return (
+                <button
+                  key={hotspot.id}
+                  onClick={() => handleHotspotClick(hotspot)}
+                  className="absolute flex items-center justify-center bg-white text-black rounded-full border-2 border-black shadow-lg hover:brightness-95 hover:scale-110 transition-all cursor-pointer text-xs md:text-sm font-bold"
+                  style={{
+                    left: `${imgBox.left + (hotspot.x_coordinate / 100) * imgBox.width}px`,
+                    top: `${imgBox.top + (hotspot.y_coordinate / 100) * imgBox.height}px`,
+                    width: `${radius * 2}px`,
+                    height: `${radius * 2}px`,
+                    transform: 'translate(-50%, -50%)',
+                  }}
+                  title={hotspot.label}
+                >
+                  {hotspot.label}
+                </button>
+              );
+            })}
         </div>
       </div>
 

@@ -32,6 +32,7 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
         const result = await api.put(`/admin/parts/hotspots/${existingCoordinate.id}`, {
           x_coordinate: coords.x,
           y_coordinate: coords.y,
+          radius: hotspotSize,
         });
         toast.success('Hotspot position updated');
         onSaved?.(result.coordinate);
@@ -49,6 +50,7 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
           image_id: imageId,
           x_coordinate: coords.x,
           y_coordinate: coords.y,
+          radius: hotspotSize,
         });
         toast.success('Hotspot placed successfully');
         onSaved?.(result.coordinate);

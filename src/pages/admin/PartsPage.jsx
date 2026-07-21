@@ -108,6 +108,7 @@ export default function PartsPage() {
     id: p.coordinate?.id || p.id,
     x_coordinate: p.coordinate?.x_coordinate || 0,
     y_coordinate: p.coordinate?.y_coordinate || 0,
+    radius: p.coordinate?.radius || 14,
     label: p.serial_no,
     part: p,
   }));
