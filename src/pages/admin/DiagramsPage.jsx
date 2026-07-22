@@ -59,7 +59,7 @@ export default function DiagramsPage() {
       try {
         const targetId = selectedSubsection || selectedSection;
         const res = await api.get(`/admin/diagrams?harvester_id=${selectedHarvester}&section_id=${targetId}`);
-        setDiagrams(res.image ? [res.image] : []);
+        setDiagrams(res.diagrams || []);
       } catch (err) {
         toast.error(err.message);
       } finally {
@@ -78,7 +78,7 @@ export default function DiagramsPage() {
       try {
         const targetId = selectedSubsection || selectedSection;
         const res = await api.get(`/admin/diagrams?harvester_id=${selectedHarvester}&section_id=${targetId}`);
-        setDiagrams(res.image ? [res.image] : []);
+        setDiagrams(res.diagrams || []);
       } catch (err) {
         toast.error(err.message);
       } finally {
@@ -157,7 +157,7 @@ export default function DiagramsPage() {
               setLoading(true);
               try {
                 const res = await api.get(`/admin/diagrams?harvester_id=${selectedHarvester}&section_id=${targetSectionId}`);
-                setDiagrams(res.image ? [res.image] : []);
+                setDiagrams(res.diagrams || []);
               } catch (err) {
                 toast.error(err.message);
               } finally {

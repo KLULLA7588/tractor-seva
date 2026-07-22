@@ -13,8 +13,7 @@ const IMAGE_FIELDS = ['id', 'section_id'];
 
 /**
  * POST /api/admin/diagrams
- * Upload or update a diagram for a section.
- * Deletes existing diagram (file + record) for the section if one exists.
+ * Upload a new diagram for a section. Adds to existing diagrams — does not delete them.
  */
 export async function uploadDiagram(req, res, next) {
   try {
@@ -37,28 +36,7 @@ export async function uploadDiagram(req, res, next) {
       throw new NotFoundError('SECTION_NOT_FOUND', 'Section not found');
     }
 
-    // Delete existing diagram for this section (S3 object + record)
-    const [existing] = await pool.query(
-      'SELECT id, image_path FROM images WHERE section_id = ?',
-      [uuidToBuffer(section_id)]
-    );
-
-    if (existing.length > 0) {
-      // Delete old file from S3
-      for (const img of existing) {
-        const key = img.image_path.split('.amazonaws.com/')[1];
-        if (key) {
-          await s3.send(new DeleteObjectCommand({
-            Bucket: process.env.AWS_BUCKET_NAME,
-            Key: key,
-          }));
-        }
-      }
-      // Delete old DB record
-      await pool.query('DELETE FROM images WHERE section_id = ?', [uuidToBuffer(section_id)]);
-    }
-
-    // Insert new image record
+    // Insert new image record (existing diagrams for this section are kept as-is)
     const id = generateUUID();
     const imagePath = req.file.location;
 
@@ -83,7 +61,7 @@ export async function uploadDiagram(req, res, next) {
 /**
  * GET /api/admin/diagrams?section_id=uuid (auth)
  * GET /api/sections/:id/diagram (public)
- * Get the diagram for a section. Returns null image if none exists.
+ * Get all diagrams for a section, newest first. `image` (most recent) kept for backward compatibility.
  */
 export async function getDiagram(req, res, next) {
   try {
@@ -102,17 +80,17 @@ export async function getDiagram(req, res, next) {
     validateUUID(sectionId, 'section_id');
 
     const [rows] = await pool.query(
-      'SELECT id, section_id, image_path, created_at FROM images WHERE section_id = ?',
+      'SELECT id, section_id, image_path, created_at FROM images WHERE section_id = ? ORDER BY created_at DESC',
       [uuidToBuffer(sectionId)]
     );
 
     if (rows.length === 0) {
-      return res.json({ success: true, image: null });
+      return res.json({ success: true, image: null, diagrams: [] });
     }
 
-    const image = convertRow(rows[0], IMAGE_FIELDS);
+    const diagrams = rows.map((row) => convertRow(row, IMAGE_FIELDS));
 
-    res.json({ success: true, image });
+    res.json({ success: true, image: diagrams[0], diagrams });
   } catch (err) {
     next(err);
   }
@@ -120,7 +98,7 @@ export async function getDiagram(req, res, next) {
 
 /**
  * DELETE /api/admin/diagrams/:id
- * Delete a diagram by image ID. Removes S3 object and DB record.
+ * Delete a single diagram by image ID. Removes S3 object and DB record.
  */
 export async function deleteDiagram(req, res, next) {
   try {
