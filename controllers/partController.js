@@ -104,14 +104,14 @@ export async function createPart(req, res, next) {
 
       let xVal = null;
       let yVal = null;
-      let finalRadius = null;
+      let finalRadius = radius !== undefined ? parseInt(radius, 10) : 14;
 
       if (hasPosition) {
         validateCoordinate(x_coordinate, 'x_coordinate');
         validateCoordinate(y_coordinate, 'y_coordinate');
         xVal = parseFloat(x_coordinate);
         yVal = parseFloat(y_coordinate);
-        finalRadius = radius !== undefined ? parseInt(radius, 10) : 14;
+        // finalRadius = radius !== undefined ? parseInt(radius, 10) : 14;
       }
 
       const coordId = generateUUID();
