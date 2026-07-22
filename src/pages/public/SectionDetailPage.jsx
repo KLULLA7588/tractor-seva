@@ -72,15 +72,16 @@ export default function SectionDetailPage() {
   };
 
   const buildHotspots = (parts) =>
-    parts.map((p) => ({
-      id: p.coordinate?.id || p.id,
-      x_coordinate: p.coordinate?.x_coordinate || 0,
-      y_coordinate: p.coordinate?.y_coordinate || 0,
-      radius: p.coordinate?.radius || 14,
+  parts
+    .filter((p) => p.coordinate) // skip "extra parts" with no hotspot position
+    .map((p) => ({
+      id: p.coordinate.id,
+      x_coordinate: p.coordinate.x_coordinate,
+      y_coordinate: p.coordinate.y_coordinate,
+      radius: p.coordinate.radius || 14,
       label: p.serial_no,
       part: p,
     }));
-
   const totalParts = diagramEntries.reduce((sum, e) => sum + e.parts.length, 0);
 
   if (loading) {
