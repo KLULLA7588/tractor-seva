@@ -132,11 +132,11 @@ router.get('/diagrams/:id/parts', async (req, res, next) => {
 
     const [rows] = await pool.query(
       `SELECT p.id, p.serial_no, p.part_no, p.kubota_part_no, p.description, p.quantity, p.fm_code, p.created_at,
-              ic.id AS coord_id, ic.x_coordinate, ic.y_coordinate
+              ic.id AS coord_id, ic.x_coordinate, ic.y_coordinate, ic.radius
        FROM parts p
        INNER JOIN image_coordinates ic ON ic.part_id = p.id
        WHERE ic.image_id = ?
-       ORDER BY p.serial_no ASC`,
+       ORDER BY CAST(p.serial_no AS UNSIGNED) ASC`,
       [uuidToBuffer(id)]
     );
 
@@ -146,6 +146,7 @@ router.get('/diagrams/:id/parts', async (req, res, next) => {
         id: bufferToUuid(r.coord_id),
         x_coordinate: parseFloat(r.x_coordinate),
         y_coordinate: parseFloat(r.y_coordinate),
+        radius: r.radius !== null && r.radius !== undefined ? parseInt(r.radius, 10) : 14,
       };
       return part;
     });
