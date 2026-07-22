@@ -83,6 +83,10 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
           <img ref={imgRef} src={imageUrl(imagePath)} alt="Diagram" onClick={handleClick} className="block max-w-full cursor-crosshair h-auto" />
           {coords && (
             <div
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                setHotspotSize((prev) => Math.min(prev + 4, 60));
+              }}
               className="absolute flex items-center justify-center rounded-full bg-white text-xs font-bold text-black shadow-lg border-2 border-black hover:brightness-95 transition-all"
               style={{
                 left: `${coords.x}%`,
@@ -114,7 +118,7 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
               onChange={(e) => setHotspotSize(parseInt(e.target.value))}
               className="w-full h-2 bg-border-subtle rounded-lg appearance-none cursor-pointer accent-brand-navy"
             />
-            <p className="text-xs text-text-gray mt-1">Adjust circle size to avoid overlaps with other hotspots</p>
+            <p className="text-xs text-text-gray mt-1">Adjust circle size to avoid overlaps with other hotspots. Double-click the hotspot to increase its size too.</p>
           </div>
         </div>
       )}
