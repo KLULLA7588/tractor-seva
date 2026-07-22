@@ -17,8 +17,7 @@ export default function SectionDetailPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [section, setSection] = useState(null);
-  const [image, setImage] = useState(null);
-  const [parts, setParts] = useState([]);
+  const [diagramEntries, setDiagramEntries] = useState([]); // [{ image, parts }]
   const [subsections, setSubsections] = useState([]);
   const [selectedPart, setSelectedPart] = useState(null);
   const [showDrawer, setShowDrawer] = useState(false);
@@ -32,15 +31,22 @@ export default function SectionDetailPage() {
         const secRes = await api.get(`/sections/${sectionId}?harvester_id=${harvesterId}`);
         setSection(secRes.section);
 
-        // Load diagram for this section
+        // Load all diagrams for this section
         const imgRes = await api.get(`/diagrams?section_id=${sectionId}`);
-        setImage(imgRes.image);
+        const diagramList =
+          imgRes.diagrams && imgRes.diagrams.length > 0
+            ? imgRes.diagrams
+            : imgRes.image
+            ? [imgRes.image]
+            : [];
 
-        // Load parts (hotspots) for this diagram
-        if (imgRes.image) {
-          const partsRes = await api.get(`/diagrams/${imgRes.image.id}/parts`);
-          setParts(partsRes.parts || []);
+        // Load parts (hotspots) for each diagram
+        const entries = [];
+        for (const img of diagramList) {
+          const partsRes = await api.get(`/diagrams/${img.id}/parts`);
+          entries.push({ image: img, parts: partsRes.parts || [] });
         }
+        setDiagramEntries(entries);
 
         // Load subsections
         const subRes = await api.get(`/sections?harvester_id=${harvesterId}&parent_id=${sectionId}`);
@@ -65,14 +71,17 @@ export default function SectionDetailPage() {
     setShowInquiryForm(true);
   };
 
-  const hotspots = parts.map((p) => ({
-    id: p.coordinate?.id || p.id,
-    x_coordinate: p.coordinate?.x_coordinate || 0,
-    y_coordinate: p.coordinate?.y_coordinate || 0,
-    radius: p.coordinate?.radius || 14,
-    label: p.serial_no,
-    part: p,
-  }));
+  const buildHotspots = (parts) =>
+    parts.map((p) => ({
+      id: p.coordinate?.id || p.id,
+      x_coordinate: p.coordinate?.x_coordinate || 0,
+      y_coordinate: p.coordinate?.y_coordinate || 0,
+      radius: p.coordinate?.radius || 14,
+      label: p.serial_no,
+      part: p,
+    }));
+
+  const totalParts = diagramEntries.reduce((sum, e) => sum + e.parts.length, 0);
 
   if (loading) {
     return (
@@ -129,14 +138,23 @@ export default function SectionDetailPage() {
 
         <p className="mt-2 text-text-gray">Click a numbered hotspot to view part info</p>
 
-        <div className="mt-8">
-          {image ? (
-            <DiagramViewer
-              src={image?.image_path}
-              hotspots={hotspots}
-              onHotspotClick={handleHotspotClick}
-              interactive
-            />
+        <div className="mt-8 space-y-8">
+          {diagramEntries.length > 0 ? (
+            diagramEntries.map((entry, idx) => (
+              <div key={entry.image.id}>
+                {diagramEntries.length > 1 && (
+                  <p className="mb-2 text-sm font-medium text-brand-navy">
+                    {section.name}{idx > 0 ? ` ${idx + 1}` : ''}
+                  </p>
+                )}
+                <DiagramViewer
+                  src={entry.image?.image_path}
+                  hotspots={buildHotspots(entry.parts)}
+                  onHotspotClick={handleHotspotClick}
+                  interactive
+                />
+              </div>
+            ))
           ) : (
             <EmptyState
               icon={Wrench}
@@ -146,9 +164,9 @@ export default function SectionDetailPage() {
           )}
         </div>
 
-        {parts.length > 0 && (
+        {totalParts > 0 && (
           <p className="mt-4 text-sm text-text-gray">
-            {parts.length} part{parts.length > 1 ? 's' : ''} on this diagram
+            {totalParts} part{totalParts > 1 ? 's' : ''} on this diagram
           </p>
         )}
       </div>

@@ -16,6 +16,8 @@ export default function PartsPage() {
   const [selectedSection, setSelectedSection] = useState('');
   const [subsections, setSubsections] = useState([]);
   const [selectedSubsection, setSelectedSubsection] = useState('');
+  const [diagrams, setDiagrams] = useState([]);
+  const [selectedDiagramIndex, setSelectedDiagramIndex] = useState(0);
   const [diagram, setDiagram] = useState(null);
   const [parts, setParts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -58,7 +60,7 @@ export default function PartsPage() {
     })();
   }, [selectedSection, selectedHarvester]);
 
-  // Load diagram and parts when section or subsection changes
+  // Load diagrams when section or subsection changes
   useEffect(() => {
     if (!selectedSection) return;
     (async () => {
@@ -66,10 +68,18 @@ export default function PartsPage() {
       try {
         const targetId = selectedSubsection || selectedSection;
         const imgRes = await api.get(`/admin/diagrams?harvester_id=${selectedHarvester}&section_id=${targetId}`);
-        const latestDiagram = imgRes.image || imgRes.diagrams?.[0] || null;
-        setDiagram(latestDiagram);
-        if (latestDiagram) {
-          const partsRes = await api.get(`/admin/parts?image_id=${latestDiagram.id}`);
+        const diagramList =
+          imgRes.diagrams && imgRes.diagrams.length > 0
+            ? imgRes.diagrams
+            : imgRes.image
+            ? [imgRes.image]
+            : [];
+        setDiagrams(diagramList);
+        setSelectedDiagramIndex(0);
+        const activeDiagram = diagramList[0] || null;
+        setDiagram(activeDiagram);
+        if (activeDiagram) {
+          const partsRes = await api.get(`/admin/parts?image_id=${activeDiagram.id}`);
           setParts(partsRes.parts || []);
         } else {
           setParts([]);
@@ -81,6 +91,26 @@ export default function PartsPage() {
       }
     })();
   }, [selectedSection, selectedSubsection, selectedHarvester]);
+
+  // When admin switches which diagram is active (only relevant if multiple diagrams exist)
+  useEffect(() => {
+    if (diagrams.length === 0) return;
+    const activeDiagram = diagrams[selectedDiagramIndex] || diagrams[0];
+    setDiagram(activeDiagram);
+    (async () => {
+      if (!activeDiagram) {
+        setParts([]);
+        return;
+      }
+      try {
+        const partsRes = await api.get(`/admin/parts?image_id=${activeDiagram.id}`);
+        setParts(partsRes.parts || []);
+      } catch (err) {
+        toast.error(err.message);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDiagramIndex]);
 
   const refreshData = async () => {
     if (diagram) {
@@ -108,10 +138,15 @@ export default function PartsPage() {
     id: p.coordinate?.id || p.id,
     x_coordinate: p.coordinate?.x_coordinate || 0,
     y_coordinate: p.coordinate?.y_coordinate || 0,
-    radius: p.coordinate?.radius || 14,
     label: p.serial_no,
     part: p,
   }));
+
+  // Label for the currently selected subsection/section, used to name multiple diagrams
+  const currentTargetName =
+    subsections.find((s) => s.id === selectedSubsection)?.name ||
+    sections.find((s) => s.id === selectedSection)?.name ||
+    'Diagram';
 
   return (
     <div>
@@ -153,6 +188,25 @@ export default function PartsPage() {
           </select>
         )}
       </div>
+
+      {/* Diagram selector — only shown when this section/subsection has more than one diagram */}
+      {!loading && diagrams.length > 1 && !hotspotMode && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {diagrams.map((d, idx) => (
+            <button
+              key={d.id}
+              onClick={() => setSelectedDiagramIndex(idx)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                idx === selectedDiagramIndex
+                  ? 'bg-brand-navy text-white'
+                  : 'bg-bg-light text-text-gray hover:bg-border-subtle'
+              }`}
+            >
+              {currentTargetName}{idx > 0 ? ` ${idx + 1}` : ''}
+            </button>
+          ))}
+        </div>
+      )}
 
       {loading && <p className="mt-4 text-sm text-text-gray">Loading...</p>}
 
