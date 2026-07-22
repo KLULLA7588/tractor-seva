@@ -6,7 +6,15 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import { api } from '../../lib/api-client';
 
-export default function PartForm({ open, onOpenChange, part = null, imageId = null, partsCount = 0, onSuccess }) {
+export default function PartForm({
+  open,
+  onOpenChange,
+  part = null,
+  imageId = null,
+  partsCount = 0,
+  extraMode = false, // true = "Add Extra Part" (no hotspot step, saved immediately)
+  onSuccess,
+}) {
   const isEdit = !!part;
   const [submitting, setSubmitting] = useState(false);
   const nextSerial = partsCount + 1;
@@ -38,8 +46,23 @@ export default function PartForm({ open, onOpenChange, part = null, imageId = nu
         await api.put(`/admin/parts/${part.id}`, payload);
         toast.success('Part updated successfully');
         onSuccess?.();
+      } else if (extraMode) {
+        // EXTRA PART: no hotspot step — create immediately, linked to the
+        // diagram/image but with no x/y position.
+        const payload = {
+          serial_no: data.serial_no || null,
+          part_no: data.part_no,
+          kubota_part_no: data.kubota_part_no || null,
+          description: data.description || null,
+          quantity: parseInt(data.quantity, 10) || 1,
+          fm_code: data.fm_code || null,
+          image_id: imageId,
+        };
+        const res = await api.post('/admin/parts', payload);
+        toast.success('Extra part added');
+        onSuccess?.(res.part, true); // second arg = "already created, no hotspot step needed"
       } else {
-        // For NEW part: just pass data to parent, don't create yet
+        // For NEW part with hotspot: just pass data to parent, don't create yet
         // HotspotEditor will create with coordinates
         const partData = {
           serial_no: data.serial_no || String(nextSerial),
@@ -73,13 +96,27 @@ export default function PartForm({ open, onOpenChange, part = null, imageId = nu
     onOpenChange(false);
   };
 
+  const title = isEdit ? 'Edit Part' : extraMode ? 'Add Extra Part (No Hotspot)' : 'Add Part';
+  const submitLabel = submitting
+    ? 'Saving...'
+    : isEdit
+    ? 'Update'
+    : extraMode
+    ? 'Add Part'
+    : 'Next (Place on Diagram)';
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogHeader onClose={handleClose}>
-        <DialogTitle>{isEdit ? 'Edit Part' : 'Add Part'}</DialogTitle>
+        <DialogTitle>{title}</DialogTitle>
       </DialogHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
         <DialogContent className="space-y-4">
+          {extraMode && (
+            <p className="rounded-md bg-bg-light px-3 py-2 text-xs text-text-gray">
+              This part will be added to the list without a hotspot on the diagram.
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-brand-navy">Serial No</label>
@@ -112,7 +149,7 @@ export default function PartForm({ open, onOpenChange, part = null, imageId = nu
         </DialogContent>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
-          <Button type="submit" disabled={submitting}>{submitting ? 'Saving...' : isEdit ? 'Update' : 'Next (Place on Diagram)'}</Button>
+          <Button type="submit" disabled={submitting}>{submitLabel}</Button>
         </DialogFooter>
       </form>
     </Dialog>

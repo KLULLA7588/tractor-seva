@@ -27,6 +27,7 @@ export default function PartsPage() {
   const [deleteId, setDeleteId] = useState(null);
   const [hotspotMode, setHotspotMode] = useState(false);
   const [hotspotPart, setHotspotPart] = useState(null);
+  const [extraMode, setExtraMode] = useState(false); // true = "Add Extra Part" flow
 
   const harvesters = harvData?.harvesters || [];
 
@@ -134,13 +135,17 @@ export default function PartsPage() {
     }
   };
 
-  const hotspots = parts.map((p) => ({
-    id: p.coordinate?.id || p.id,
-    x_coordinate: p.coordinate?.x_coordinate || 0,
-    y_coordinate: p.coordinate?.y_coordinate || 0,
-    label: p.serial_no,
-    part: p,
-  }));
+  // Only parts that actually have a hotspot position get rendered as a dot on the diagram.
+  // Extra parts (coordinate === null) are simply skipped here — everything else unchanged.
+  const hotspots = parts
+    .filter((p) => p.coordinate?.x_coordinate != null && p.coordinate?.y_coordinate != null)
+    .map((p) => ({
+      id: p.coordinate.id,
+      x_coordinate: p.coordinate.x_coordinate,
+      y_coordinate: p.coordinate.y_coordinate,
+      label: p.serial_no,
+      part: p,
+    }));
 
   // Label for the currently selected subsection/section, used to name multiple diagrams
   const currentTargetName =
@@ -156,13 +161,23 @@ export default function PartsPage() {
           <p className="mt-1 text-sm text-text-gray">Manage parts and their positions on diagrams</p>
         </div>
         {diagram && (
-          <button
-            onClick={() => { setEditPart(null); setShowPartForm(true); }}
-            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-b from-[#1B2870] to-[#172263] px-4 py-2 text-sm font-semibold text-white shadow-button transition-all duration-150 hover:-translate-y-0.5 hover:brightness-110"
-          >
-            <Plus className="h-4 w-4" />
-            Add Part
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setEditPart(null); setExtraMode(false); setShowPartForm(true); }}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-b from-[#1B2870] to-[#172263] px-4 py-2 text-sm font-semibold text-white shadow-button transition-all duration-150 hover:-translate-y-0.5 hover:brightness-110"
+            >
+              <Plus className="h-4 w-4" />
+              Add Part
+            </button>
+            <button
+              onClick={() => { setEditPart(null); setExtraMode(true); setShowPartForm(true); }}
+              className="inline-flex items-center gap-2 rounded-full border border-brand-navy px-4 py-2 text-sm font-semibold text-brand-navy transition-all duration-150 hover:bg-bg-light"
+              title="Add a part that has no hotspot on the diagram"
+            >
+              <Plus className="h-4 w-4" />
+              Add Extra Part
+            </button>
+          </div>
         )}
       </div>
 
@@ -251,6 +266,7 @@ export default function PartsPage() {
                     <tr>
                       <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-text-gray">#</th>
                       <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-text-gray">Part No</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-text-gray">Type</th>
                       <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-text-gray">Actions</th>
                     </tr>
                   </thead>
@@ -259,19 +275,17 @@ export default function PartsPage() {
                       <tr key={part.id} className="hover:bg-bg-light">
                         <td className="px-3 py-2 text-sm font-medium text-brand-navy">{part.serial_no || i + 1}</td>
                         <td className="px-3 py-2 text-sm font-mono-code text-text-black">{part.part_no}</td>
+                        <td className="px-3 py-2 text-xs text-text-gray">
+                          {part.coordinate?.id ? 'Hotspot' : 'Extra (no hotspot)'}
+                        </td>
                         <td className="px-3 py-2">
                           <div className="flex justify-end gap-1.5">
-                            <button onClick={() => { 
-                              if (part.coordinate?.id) {
-                                setHotspotPart(part); 
-                                setHotspotMode(true);
-                              } else {
-                                toast.error('Hotspot coordinate not found');
-                              }
-                            }}
-                              className="rounded-md p-1 text-text-gray hover:text-brand-navy" title="Move hotspot">
-                              <Move className="h-3.5 w-3.5" />
-                            </button>
+                            {part.coordinate?.id && (
+                              <button onClick={() => { setHotspotPart(part); setHotspotMode(true); }}
+                                className="rounded-md p-1 text-text-gray hover:text-brand-navy" title="Move hotspot">
+                                <Move className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                             <button onClick={() => { setEditPart(part); setShowPartForm(true); }}
                               className="rounded-md p-1 text-text-gray hover:text-brand-navy">
                               <Pencil className="h-3.5 w-3.5" />
@@ -295,16 +309,23 @@ export default function PartsPage() {
       <PartForm
         open={showPartForm}
         onOpenChange={(open) => {
-          if (!open) setNewPart(null);
+          if (!open) {
+            setNewPart(null);
+            setExtraMode(false);
+          }
           setShowPartForm(open);
         }}
         part={editPart}
         imageId={diagram?.id}
         partsCount={parts.length}
-        onSuccess={(createdPartOrData) => {
-          if (createdPartOrData && !editPart) {
-            // New part - data passed, not created yet
-            // Now show hotspot editor to place it with coordinates
+        extraMode={extraMode}
+        onSuccess={(createdPartOrData, alreadyCreated) => {
+          if (alreadyCreated) {
+            // Extra part — already saved via API, no hotspot step needed.
+            setExtraMode(false);
+            refreshData();
+          } else if (createdPartOrData && !editPart) {
+            // New part with hotspot — data passed, not created yet.
             setNewPart(createdPartOrData);
             setHotspotPart(createdPartOrData);
             setHotspotMode(true);
@@ -320,7 +341,7 @@ export default function PartsPage() {
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Part"
-        message="This will also delete the hotspot for this part."
+        message="This will also delete the hotspot for this part (if it has one)."
       />
     </div>
   );

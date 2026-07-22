@@ -17,6 +17,8 @@ const COORD_FIELDS = ['id', 'part_id', 'image_id'];
 /**
  * POST /api/admin/parts
  * Create a part with an optional hotspot on a diagram.
+ * If image_id is provided WITHOUT x_coordinate/y_coordinate, the part is
+ * linked to the diagram as an "extra part" with no visible hotspot dot.
  */
 export async function createPart(req, res, next) {
   try {
@@ -72,11 +74,11 @@ export async function createPart(req, res, next) {
 
     let coordinate = null;
 
-    // If image_id and coordinates provided, create a hotspot
-    if (image_id && x_coordinate !== undefined && y_coordinate !== undefined) {
+    // If image_id provided, link the part to this diagram.
+    // Coordinates are OPTIONAL — omitting them creates an "extra part"
+    // (linked to the diagram/section, but with no hotspot dot on the image).
+    if (image_id) {
       validateUUID(image_id, 'image_id');
-      validateCoordinate(x_coordinate, 'x_coordinate');
-      validateCoordinate(y_coordinate, 'y_coordinate');
 
       // Verify image exists
       const [imageCheck] = await pool.query(
@@ -98,8 +100,21 @@ export async function createPart(req, res, next) {
         throw new ConflictError('CONFLICT', 'A hotspot for this part and image already exists');
       }
 
+      const hasPosition = x_coordinate !== undefined && y_coordinate !== undefined;
+
+      let xVal = null;
+      let yVal = null;
+      let finalRadius = null;
+
+      if (hasPosition) {
+        validateCoordinate(x_coordinate, 'x_coordinate');
+        validateCoordinate(y_coordinate, 'y_coordinate');
+        xVal = parseFloat(x_coordinate);
+        yVal = parseFloat(y_coordinate);
+        finalRadius = radius !== undefined ? parseInt(radius, 10) : 14;
+      }
+
       const coordId = generateUUID();
-      const finalRadius = radius !== undefined ? parseInt(radius, 10) : 14;
       await pool.query(
         `INSERT INTO image_coordinates (id, part_id, image_id, x_coordinate, y_coordinate, radius)
          VALUES (?, ?, ?, ?, ?, ?)`,
@@ -107,8 +122,8 @@ export async function createPart(req, res, next) {
           uuidToBuffer(coordId),
           uuidToBuffer(partId),
           uuidToBuffer(image_id),
-          parseFloat(x_coordinate),
-          parseFloat(y_coordinate),
+          xVal,
+          yVal,
           finalRadius,
         ]
       );
@@ -130,7 +145,9 @@ export async function createPart(req, res, next) {
 /**
  * GET /api/admin/parts?image_id=uuid (auth)
  * GET /api/diagrams/:id/parts (public)
- * Get all parts with their hotspot coordinates for a given diagram (image).
+ * Get all parts for a given diagram (image), including parts that have
+ * no hotspot position (extra parts). Parts WITH a hotspot include their
+ * x/y/radius under `coordinate`; parts without one have `coordinate: null`.
  */
 export async function getPartsByImage(req, res, next) {
   try {
@@ -151,20 +168,23 @@ export async function getPartsByImage(req, res, next) {
       `SELECT p.id, p.serial_no, p.part_no, p.kubota_part_no, p.description, p.quantity, p.fm_code, p.created_at,
               ic.id AS coord_id, ic.x_coordinate, ic.y_coordinate, ic.radius
        FROM parts p
-       INNER JOIN image_coordinates ic ON ic.part_id = p.id
+       LEFT JOIN image_coordinates ic ON ic.part_id = p.id AND ic.image_id = ?
        WHERE ic.image_id = ?
        ORDER BY CAST(p.serial_no AS UNSIGNED) ASC`,
-      [uuidToBuffer(imageId)]
+      [uuidToBuffer(imageId), uuidToBuffer(imageId)]
     );
 
     const parts = rows.map((r) => {
       const part = convertRow(r, PART_FIELDS);
-      part.coordinate = {
-        id: bufferToUuid(r.coord_id),
-        x_coordinate: parseFloat(r.x_coordinate),
-        y_coordinate: parseFloat(r.y_coordinate),
-        radius: r.radius !== null && r.radius !== undefined ? parseInt(r.radius, 10) : 14,
-      };
+      const hasPosition = r.x_coordinate !== null && r.y_coordinate !== null;
+      part.coordinate = hasPosition
+        ? {
+            id: bufferToUuid(r.coord_id),
+            x_coordinate: parseFloat(r.x_coordinate),
+            y_coordinate: parseFloat(r.y_coordinate),
+            radius: r.radius !== null && r.radius !== undefined ? parseInt(r.radius, 10) : 14,
+          }
+        : null;
       return part;
     });
 
