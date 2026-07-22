@@ -80,7 +80,7 @@ export async function getDiagram(req, res, next) {
     validateUUID(sectionId, 'section_id');
 
     const [rows] = await pool.query(
-      'SELECT id, section_id, image_path, created_at FROM images WHERE section_id = ? ORDER BY created_at DESC',
+      'SELECT id, section_id, image_path, created_at FROM images WHERE section_id = ? ORDER BY created_at ASC',
       [uuidToBuffer(sectionId)]
     );
 
