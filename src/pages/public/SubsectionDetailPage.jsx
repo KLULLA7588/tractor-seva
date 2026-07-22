@@ -16,8 +16,7 @@ export default function SubsectionDetailPage() {
   const { harvesterId, sectionId, subId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [image, setImage] = useState(null);
-  const [parts, setParts] = useState([]);
+  const [diagramEntries, setDiagramEntries] = useState([]); // [{ image, parts }]
   const [selectedPart, setSelectedPart] = useState(null);
   const [showDrawer, setShowDrawer] = useState(false);
   const [showInquiryForm, setShowInquiryForm] = useState(false);
@@ -31,15 +30,22 @@ export default function SubsectionDetailPage() {
         const secRes = await api.get(`/sections/${sectionId}`);
         setSection(secRes.section);
 
-        // Load diagram
+        // Load all diagrams for this subsection
         const imgRes = await api.get(`/sections/${subId}/diagram`);
-        setImage(imgRes.image);
-        
-        // Load parts
-        if (imgRes.image) {
-          const partsRes = await api.get(`/diagrams/${imgRes.image.id}/parts`);
-          setParts(partsRes.parts || []);
+        const diagramList =
+          imgRes.diagrams && imgRes.diagrams.length > 0
+            ? imgRes.diagrams
+            : imgRes.image
+            ? [imgRes.image]
+            : [];
+
+        // Load parts for each diagram
+        const entries = [];
+        for (const img of diagramList) {
+          const partsRes = await api.get(`/diagrams/${img.id}/parts`);
+          entries.push({ image: img, parts: partsRes.parts || [] });
         }
+        setDiagramEntries(entries);
       } catch (err) {
         console.error('Failed to load data:', err);
       } finally {
@@ -64,14 +70,18 @@ export default function SubsectionDetailPage() {
     navigate(`/harvester/${harvesterId}/section/${sectionId}/subsections`);
   };
 
-  const hotspots = parts.map((p) => ({
-    id: p.coordinate?.id || p.id,
-    x_coordinate: p.coordinate?.x_coordinate || 0,
-    y_coordinate: p.coordinate?.y_coordinate || 0,
-    radius: p.coordinate?.radius || 14,
-    label: p.serial_no,
-    part: p,
-  }));
+  const buildHotspots = (parts) =>
+    parts.map((p) => ({
+      id: p.coordinate?.id || p.id,
+      x_coordinate: p.coordinate?.x_coordinate || 0,
+      y_coordinate: p.coordinate?.y_coordinate || 0,
+      radius: p.coordinate?.radius || 14,
+      label: p.serial_no,
+      part: p,
+    }));
+
+  // Combined parts list across all diagrams, for the Parts table below
+  const allParts = diagramEntries.flatMap((e) => e.parts);
 
   if (loading) {
     return (
@@ -129,14 +139,31 @@ export default function SubsectionDetailPage() {
               </Button>
             </div>
 
-            {/* Diagram Viewer */}
-            <div className="mt-8 overflow-hidden rounded-lg border border-border-subtle bg-black shadow-card">
-              <DiagramViewer
-                src={image?.image_path}
-                hotspots={hotspots}
-                onHotspotClick={handleHotspotClick}
-                interactive
-              />
+            {/* Diagram Viewer(s) — one per uploaded diagram */}
+            <div className="mt-8 space-y-6">
+              {diagramEntries.length > 0 ? (
+                diagramEntries.map((entry, idx) => (
+                  <div key={entry.image.id} className="overflow-hidden rounded-lg border border-border-subtle bg-black shadow-card">
+                    {diagramEntries.length > 1 && (
+                      <p className="px-4 pt-3 text-sm font-medium text-white">
+                        {section?.name}{idx > 0 ? ` ${idx + 1}` : ''}
+                      </p>
+                    )}
+                    <DiagramViewer
+                      src={entry.image?.image_path}
+                      hotspots={buildHotspots(entry.parts)}
+                      onHotspotClick={handleHotspotClick}
+                      interactive
+                    />
+                  </div>
+                ))
+              ) : (
+                <EmptyState
+                  icon={Wrench}
+                  title="No diagram available"
+                  message="This section doesn't have a diagram yet."
+                />
+              )}
             </div>
 
             {/* Sub-sections Panel */}
@@ -174,7 +201,7 @@ export default function SubsectionDetailPage() {
             )}
 
             {/* Parts Section */}
-            {parts.length > 0 && (
+            {allParts.length > 0 && (
               <div className="mt-10">
                 <h2 className="font-oswald text-2xl md:text-3xl font-bold text-text-black">
                   Parts
@@ -192,7 +219,7 @@ export default function SubsectionDetailPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {parts.map((part, index) => (
+                      {allParts.map((part, index) => (
                         <TableRow key={part.id}>
                           <TableCell className="font-medium text-brand-navy">
                             {index + 1}
@@ -235,7 +262,7 @@ export default function SubsectionDetailPage() {
               </div>
             )}
 
-            {parts.length === 0 && (
+            {allParts.length === 0 && (
               <div className="mt-10">
                 <EmptyState
                   icon={Wrench}
