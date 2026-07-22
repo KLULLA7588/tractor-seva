@@ -73,7 +73,6 @@ router.get('/harvesters/:id/sections', async (req, res, next) => {
     next(err);
   }
 });
-
 /**
  * GET /api/sections/:id/diagram
  * Get all diagrams for a section (public).
@@ -98,7 +97,6 @@ router.get('/sections/:id/diagram', async (req, res, next) => {
     next(err);
   }
 });
-
 /**
  * GET /api/sections/:id/diagram
  * Get the diagram for a section (public).
