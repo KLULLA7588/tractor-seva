@@ -73,6 +73,29 @@ router.get('/harvesters/:id/sections', async (req, res, next) => {
     next(err);
   }
 });
+
+/**
+ * GET /api/sections/:id/subsections
+ * Get subsections for a section (public).
+ */
+router.get('/sections/:id/subsections', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    validateUUID(id, 'id');
+
+    const [rows] = await pool.query(
+      `SELECT id, harvester_id, parent_id, name, icon, created_at
+       FROM sections WHERE parent_id = ? ORDER BY created_at ASC`,
+      [uuidToBuffer(id)]
+    );
+
+    const subsections = rows.map((s) => convertRow(s, SECTION_FIELDS));
+    res.json({ success: true, subsections });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /**
  * GET /api/sections/:id/diagram
  * Get all diagrams for a section (public).
@@ -93,30 +116,6 @@ router.get('/sections/:id/diagram', async (req, res, next) => {
 
     const diagrams = rows.map((row) => convertRow(row, IMAGE_FIELDS));
     res.json({ success: true, image: diagrams[0], diagrams });
-  } catch (err) {
-    next(err);
-  }
-});
-/**
- * GET /api/sections/:id/diagram
- * Get the diagram for a section (public).
- */
-router.get('/sections/:id/diagram', async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    validateUUID(id, 'id');
-
-    const [rows] = await pool.query(
-      'SELECT id, section_id, image_path, created_at FROM images WHERE section_id = ?',
-      [uuidToBuffer(id)]
-    );
-
-    if (rows.length === 0) {
-      return res.json({ success: true, image: null });
-    }
-
-    const image = convertRow(rows[0], IMAGE_FIELDS);
-    res.json({ success: true, image });
   } catch (err) {
     next(err);
   }
