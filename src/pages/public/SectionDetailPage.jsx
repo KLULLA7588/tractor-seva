@@ -73,7 +73,7 @@ export default function SectionDetailPage() {
 
   const buildHotspots = (parts) =>
   parts
-    .filter((p) => p.coordinate) // skip "extra parts" with no hotspot position
+    .filter((p) => p.coordinate && p.coordinate.x_coordinate !== null && p.coordinate.y_coordinate !== null) // skip "extra parts" with no hotspot position
     .map((p) => ({
       id: p.coordinate.id,
       x_coordinate: p.coordinate.x_coordinate,
