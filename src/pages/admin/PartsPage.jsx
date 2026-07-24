@@ -157,6 +157,7 @@ export default function PartsPage() {
       id: p.coordinate.id,
       x_coordinate: p.coordinate.x_coordinate,
       y_coordinate: p.coordinate.y_coordinate,
+      radius: p.coordinate.radius,
       label: p.serial_no,
       part: p,
     }));
@@ -406,9 +407,6 @@ export default function PartsPage() {
     </div>
   );
 }
-
-
-
 
 
 
