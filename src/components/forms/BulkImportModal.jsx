@@ -101,11 +101,15 @@ export default function BulkImportModal({ open, onOpenChange, imageId, onSuccess
         image_id: imageId,
         rows: mappedRows,
       });
-      const parts = [];
-      if (res.created) parts.push(`${res.created} new part(s) added`);
-      if (res.linked) parts.push(`${res.linked} existing part(s) linked to this diagram`);
-      if (res.skipped?.length) parts.push(`${res.skipped.length} row(s) skipped`);
-      toast.success(parts.join(', ') || 'Nothing to import');
+      const successCount = (res.created || 0) + (res.linked || 0);
+      let message = `${successCount} part(s) added`;
+      if (res.created > 0 && res.linked > 0) {
+        message += ` (${res.created} new, ${res.linked} already in catalog)`;
+      }
+      if (res.skipped?.length) {
+        message += `, ${res.skipped.length} row(s) skipped`;
+      }
+      toast.success(message);
       if (res.skipped?.length) {
         console.log('Bulk import — skipped rows:', res.skipped);
       }
