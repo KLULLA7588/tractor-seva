@@ -166,30 +166,46 @@ export async function bulkCreateParts(req, res, next) {
       validateUUID(image_id, 'image_id');
     }
 
-    // Look up which of these part_no values already exist, so re-submitting
-    // the same batch (e.g. after a client-side timeout) never creates
-    // duplicates — matching rows are skipped instead of inserted again.
+    // Look up which of these part_no values already exist as parts, and
+    // whether they're already linked (via image_coordinates) to THIS
+    // diagram specifically. This makes bulk import safe to re-run:
+    // - brand new part_no -> create part + link to diagram (as before)
+    // - existing part_no not yet linked to this diagram -> just link it
+    //   here (no duplicate part record created)
+    // - existing part_no already linked to this diagram -> true duplicate,
+    //   skipped
     const candidatePartNos = [...new Set(
       rows.map((r) => (r?.part_no ? String(r.part_no).trim() : '')).filter(Boolean)
     )];
-    let existingPartNos = new Set();
+    const existingMap = new Map(); // part_no -> { id, linkedToThisImage }
     if (candidatePartNos.length > 0) {
       const [existingRows] = await pool.query(
-        `SELECT part_no FROM parts WHERE part_no IN (?)`,
-        [candidatePartNos]
+        `SELECT p.id AS part_id, p.part_no,
+                ic.id AS coord_id
+         FROM parts p
+         LEFT JOIN image_coordinates ic ON ic.part_id = p.id AND ic.image_id = ?
+         WHERE p.part_no IN (?)`,
+        [image_id ? uuidToBuffer(image_id) : Buffer.alloc(16), candidatePartNos]
       );
-      existingPartNos = new Set(existingRows.map((r) => r.part_no));
+      for (const r of existingRows) {
+        existingMap.set(r.part_no, {
+          id: bufferToUuid(r.part_id),
+          linkedToThisImage: !!r.coord_id,
+        });
+      }
     }
 
     // Build the list of valid rows first (same per-row rules as before),
-    // then insert everything in 2 batched queries instead of looping one
+    // then insert everything in batched queries instead of looping one
     // query at a time — this is what actually fixes request timeouts on
     // larger imports (e.g. 60+ rows), since it turns ~120 sequential
-    // round-trips into 2.
+    // round-trips into a handful.
     const createdParts = [];
+    const linkedParts = [];
     const skipped = [];
     const partValues = [];
-    const coordValues = [];
+    const coordValues = []; // for brand-new parts
+    const linkOnlyValues = []; // for existing parts not yet linked to this image
     const seenInThisBatch = new Set();
 
     for (let i = 0; i < rows.length; i++) {
@@ -197,16 +213,38 @@ export async function bulkCreateParts(req, res, next) {
       const part_no = row.part_no ? String(row.part_no).trim() : '';
 
       if (!part_no) {
-        skipped.push({ row: i + 1, reason: 'Missing part_no' });
+        skipped.push({ row: i + 1, reason: 'Missing Part No' });
         continue;
       }
 
-      if (existingPartNos.has(part_no) || seenInThisBatch.has(part_no)) {
-        skipped.push({ row: i + 1, reason: `Part No "${part_no}" already exists — skipped to avoid duplicate` });
+      if (seenInThisBatch.has(part_no)) {
+        skipped.push({ row: i + 1, reason: `Part No "${part_no}" appears more than once in this paste — only the first was used` });
         continue;
       }
+
+      const existing = existingMap.get(part_no);
+
+      if (existing && existing.linkedToThisImage) {
+        skipped.push({ row: i + 1, reason: `Part No "${part_no}" is already added to this diagram` });
+        continue;
+      }
+
       seenInThisBatch.add(part_no);
 
+      if (existing && !existing.linkedToThisImage) {
+        // Part already exists elsewhere in the catalog but isn't linked to
+        // this diagram yet — link it here instead of creating a duplicate.
+        if (image_id) {
+          const coordId = generateUUID();
+          linkOnlyValues.push([uuidToBuffer(coordId), uuidToBuffer(existing.id), uuidToBuffer(image_id), 14]);
+          linkedParts.push({ id: existing.id, part_no });
+        } else {
+          skipped.push({ row: i + 1, reason: `Part No "${part_no}" already exists` });
+        }
+        continue;
+      }
+
+      // Brand new part_no
       const partId = generateUUID();
       const serial_no =
         row.serial_no !== undefined && row.serial_no !== null && String(row.serial_no).trim() !== ''
@@ -245,12 +283,25 @@ export async function bulkCreateParts(req, res, next) {
     if (coordValues.length > 0) {
       await conn.query(
         `INSERT INTO image_coordinates (id, part_id, image_id, x_coordinate, y_coordinate, radius) VALUES ?`,
-        [coordValues.map(([id, partId, imageId, radius]) => [id, partId, imageId, null, null, radius])]
+        [coordValues.map(([id, partId, imgId, radius]) => [id, partId, imgId, null, null, radius])]
+      );
+    }
+
+    if (linkOnlyValues.length > 0) {
+      await conn.query(
+        `INSERT INTO image_coordinates (id, part_id, image_id, x_coordinate, y_coordinate, radius) VALUES ?`,
+        [linkOnlyValues.map(([id, partId, imgId, radius]) => [id, partId, imgId, null, null, radius])]
       );
     }
 
     await conn.commit();
-    res.status(201).json({ success: true, created: createdParts.length, skipped, parts: createdParts });
+    res.status(201).json({
+      success: true,
+      created: createdParts.length,
+      linked: linkedParts.length,
+      skipped,
+      parts: createdParts,
+    });
   } catch (err) {
     await conn.rollback();
     next(err);
@@ -481,8 +532,6 @@ export async function deletePart(req, res, next) {
     next(err);
   }
 }
-
-
 
 
 
