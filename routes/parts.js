@@ -11,6 +11,7 @@ import {
   updateHotspot,
   deletePart,
   bulkCreateParts,
+  deletePartsByImage,
 } from '../controllers/partController.js';
 
 const router = express.Router();
@@ -19,6 +20,7 @@ const router = express.Router();
 router.get('/', auth, getPartsByImage);
 router.post('/', auth, createPart);
 router.post('/bulk', auth, bulkCreateParts);
+router.delete('/', auth, deletePartsByImage);
 router.put('/hotspots/:coordinate_id', auth, updateHotspot);
 router.put('/:id', auth, updatePart);
 router.delete('/:id', auth, deletePart);

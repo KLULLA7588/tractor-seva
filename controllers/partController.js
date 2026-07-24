@@ -166,10 +166,31 @@ export async function bulkCreateParts(req, res, next) {
       validateUUID(image_id, 'image_id');
     }
 
-    await conn.beginTransaction();
+    // Look up which of these part_no values already exist, so re-submitting
+    // the same batch (e.g. after a client-side timeout) never creates
+    // duplicates — matching rows are skipped instead of inserted again.
+    const candidatePartNos = [...new Set(
+      rows.map((r) => (r?.part_no ? String(r.part_no).trim() : '')).filter(Boolean)
+    )];
+    let existingPartNos = new Set();
+    if (candidatePartNos.length > 0) {
+      const [existingRows] = await pool.query(
+        `SELECT part_no FROM parts WHERE part_no IN (?)`,
+        [candidatePartNos]
+      );
+      existingPartNos = new Set(existingRows.map((r) => r.part_no));
+    }
 
+    // Build the list of valid rows first (same per-row rules as before),
+    // then insert everything in 2 batched queries instead of looping one
+    // query at a time — this is what actually fixes request timeouts on
+    // larger imports (e.g. 60+ rows), since it turns ~120 sequential
+    // round-trips into 2.
     const createdParts = [];
     const skipped = [];
+    const partValues = [];
+    const coordValues = [];
+    const seenInThisBatch = new Set();
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i] || {};
@@ -179,6 +200,12 @@ export async function bulkCreateParts(req, res, next) {
         skipped.push({ row: i + 1, reason: 'Missing part_no' });
         continue;
       }
+
+      if (existingPartNos.has(part_no) || seenInThisBatch.has(part_no)) {
+        skipped.push({ row: i + 1, reason: `Part No "${part_no}" already exists — skipped to avoid duplicate` });
+        continue;
+      }
+      seenInThisBatch.add(part_no);
 
       const partId = generateUUID();
       const serial_no =
@@ -193,25 +220,33 @@ export async function bulkCreateParts(req, res, next) {
           : null;
       const fm_code = null; // never provided by bulk import, always blank
 
-      await conn.query(
-        `INSERT INTO parts (id, serial_no, part_no, kubota_part_no, description, quantity, fm_code)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [uuidToBuffer(partId), serial_no, part_no, kubota_part_no, description, quantity, fm_code]
-      );
+      partValues.push([uuidToBuffer(partId), serial_no, part_no, kubota_part_no, description, quantity, fm_code]);
 
       // Link to diagram/image as an "extra part" — no coordinate yet.
       // (Matches createPart's existing behavior when image_id is given
       // without x_coordinate/y_coordinate.)
       if (image_id) {
         const coordId = generateUUID();
-        await conn.query(
-          `INSERT INTO image_coordinates (id, part_id, image_id, x_coordinate, y_coordinate, radius)
-           VALUES (?, ?, ?, NULL, NULL, ?)`,
-          [uuidToBuffer(coordId), uuidToBuffer(partId), uuidToBuffer(image_id), 14]
-        );
+        coordValues.push([uuidToBuffer(coordId), uuidToBuffer(partId), uuidToBuffer(image_id), 14]);
       }
 
       createdParts.push({ id: partId, serial_no, part_no, kubota_part_no, description, quantity, fm_code });
+    }
+
+    await conn.beginTransaction();
+
+    if (partValues.length > 0) {
+      await conn.query(
+        `INSERT INTO parts (id, serial_no, part_no, kubota_part_no, description, quantity, fm_code) VALUES ?`,
+        [partValues]
+      );
+    }
+
+    if (coordValues.length > 0) {
+      await conn.query(
+        `INSERT INTO image_coordinates (id, part_id, image_id, x_coordinate, y_coordinate, radius) VALUES ?`,
+        [coordValues.map(([id, partId, imageId, radius]) => [id, partId, imageId, null, null, radius])]
+      );
     }
 
     await conn.commit();
@@ -221,6 +256,40 @@ export async function bulkCreateParts(req, res, next) {
     next(err);
   } finally {
     conn.release();
+  }
+}
+
+/**
+ * DELETE /api/admin/parts?image_id=uuid
+ * Bulk-delete every part linked to a given diagram (image) in one request —
+ * used for cleaning up an accidental duplicate bulk import, or clearing a
+ * diagram's parts entirely. Cascades to each part's hotspot the same way
+ * the existing single deletePart already does.
+ */
+export async function deletePartsByImage(req, res, next) {
+  try {
+    const { image_id } = req.query;
+
+    if (!image_id) {
+      throw new BadRequestError('INVALID_INPUT', 'image_id is required');
+    }
+    validateUUID(image_id, 'image_id');
+
+    const [rows] = await pool.query(
+      `SELECT p.id FROM parts p JOIN image_coordinates ic ON ic.part_id = p.id WHERE ic.image_id = ?`,
+      [uuidToBuffer(image_id)]
+    );
+
+    if (rows.length === 0) {
+      return res.json({ success: true, deleted: 0 });
+    }
+
+    const ids = rows.map((r) => r.id);
+    await pool.query('DELETE FROM parts WHERE id IN (?)', [ids]);
+
+    res.json({ success: true, deleted: ids.length });
+  } catch (err) {
+    next(err);
   }
 }
 
@@ -412,7 +481,6 @@ export async function deletePart(req, res, next) {
     next(err);
   }
 }
-
 
 
 

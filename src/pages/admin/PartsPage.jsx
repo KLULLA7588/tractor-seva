@@ -27,6 +27,7 @@ export default function PartsPage() {
   const [editPart, setEditPart] = useState(null);
   const [newPart, setNewPart] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [deleteAllMode, setDeleteAllMode] = useState(false);
   const [hotspotMode, setHotspotMode] = useState(false);
   const [hotspotPart, setHotspotPart] = useState(null);
   const [extraMode, setExtraMode] = useState(false); // true = "Add Extra Part" flow
@@ -131,6 +132,17 @@ export default function PartsPage() {
       await api.delete(`/admin/parts/${deleteId}`);
       toast.success('Part deleted');
       setDeleteId(null);
+      refreshData();
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    try {
+      const res = await api.delete(`/admin/parts?image_id=${diagram.id}`);
+      toast.success(`Deleted ${res.deleted} part(s)`);
+      setDeleteAllMode(false);
       refreshData();
     } catch (err) {
       toast.error(err.message);
@@ -267,7 +279,19 @@ export default function PartsPage() {
           </div>
 
           <div>
-            <h2 className="font-oswald text-lg font-semibold text-brand-navy">Parts ({parts.length})</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-oswald text-lg font-semibold text-brand-navy">Parts ({parts.length})</h2>
+              {parts.length > 0 && (
+                <button
+                  onClick={() => setDeleteAllMode(true)}
+                  className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-brand-red hover:bg-brand-red/10"
+                  title="Delete all parts on this diagram"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete All
+                </button>
+              )}
+            </div>
             {parts.length === 0 ? (
               <p className="mt-2 text-sm text-text-gray">No parts yet. Add your first part.</p>
             ) : (
@@ -372,10 +396,16 @@ export default function PartsPage() {
         title="Delete Part"
         message="This will also delete the hotspot for this part (if it has one)."
       />
+      <ConfirmDialog
+        open={deleteAllMode}
+        onClose={() => setDeleteAllMode(false)}
+        onConfirm={handleDeleteAll}
+        title="Delete All Parts"
+        message={`This will permanently delete all ${parts.length} part(s) on this diagram, including their hotspots. This cannot be undone.`}
+      />
     </div>
   );
 }
-
 
 
 
