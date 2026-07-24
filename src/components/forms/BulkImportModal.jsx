@@ -14,9 +14,10 @@ const FIELD_OPTIONS = [
 ];
 
 // Guesses a sensible default mapping so the admin usually doesn't have to
-// touch the dropdowns — matches the column order seen in the TS master sheet.
+// touch the dropdowns — matches the column order seen in the TS master sheet:
+// Diagram Ref# | S.No | Category | GAM Part Number | Wubota Part Number | TS Part Number | Description | Qty
 function guessMapping(colCount) {
-  const guesses = ['ignore', 'serial_no', 'ignore', 'ignore', 'kubota_part_no', 'part_no', 'description', 'quantity'];
+  const guesses = ['serial_no', 'ignore', 'ignore', 'ignore', 'kubota_part_no', 'part_no', 'description', 'quantity'];
   return Array.from({ length: colCount }, (_, i) => guesses[i] || 'ignore');
 }
 
