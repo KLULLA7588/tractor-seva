@@ -22,9 +22,26 @@ function guessMapping(colCount) {
 }
 
 function parseRawText(text) {
-  const lines = text.split('\n').map((l) => l.replace(/\r$/, '')).filter((l) => l.trim() !== '');
-  const delimiter = lines[0]?.includes('\t') ? '\t' : ',';
-  return lines.map((line) => line.split(delimiter).map((cell) => cell.trim()));
+  const rawLines = text.split('\n').map((l) => l.replace(/\r$/, '')).filter((l) => l.trim() !== '');
+
+  // Excel sometimes copies a visually word-wrapped row (e.g. "Wrap Text" on
+  // a long cell) as two plain-text lines even though it's logically one
+  // row. Every real row here starts with a numeric index/serial column, so
+  // any line that does NOT start with a number is treated as a continuation
+  // of the previous line and glued back on, instead of being read as its
+  // own (broken) row.
+  const mergedLines = [];
+  for (const line of rawLines) {
+    const looksLikeNewRow = /^\s*\d/.test(line);
+    if (looksLikeNewRow || mergedLines.length === 0) {
+      mergedLines.push(line);
+    } else {
+      mergedLines[mergedLines.length - 1] += '\t' + line;
+    }
+  }
+
+  const delimiter = mergedLines[0]?.includes('\t') ? '\t' : ',';
+  return mergedLines.map((line) => line.split(delimiter).map((cell) => cell.trim()));
 }
 
 export default function BulkImportModal({ open, onOpenChange, imageId, onSuccess }) {
