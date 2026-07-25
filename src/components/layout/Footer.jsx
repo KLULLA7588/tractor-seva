@@ -48,11 +48,7 @@ export default function Footer() {
                   How It Works
                 </a>
               </li>
-              <li>
-                <a href="#features" className="text-sm text-white/60 transition-colors hover:text-white">
-                  Features
-                </a>
-              </li>
+              
             </ul>
           </div>
 
@@ -62,11 +58,7 @@ export default function Footer() {
               Support
             </h3>
             <ul className="mt-5 space-y-3">
-              <li>
-                <a href="#support" className="text-sm text-white/60 transition-colors hover:text-white">
-                  Inquiry System
-                </a>
-              </li>
+              
               <li>
                 <a href="#support" className="text-sm text-white/60 transition-colors hover:text-white">
                   Contact Us
@@ -112,8 +104,7 @@ export default function Footer() {
             © {new Date().getFullYear()} Tractor Seva. All rights reserved.
           </p>
           <div className="flex items-center gap-5">
-            <a href="#support" className="text-xs text-white/40 transition-colors hover:text-white/70">Privacy Policy</a>
-            <a href="#support" className="text-xs text-white/40 transition-colors hover:text-white/70">Terms of Service</a>
+            
             <Link
               to="/catalog"
               className="flex items-center gap-1 text-xs font-medium text-white/60 transition-colors hover:text-white"
