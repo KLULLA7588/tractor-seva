@@ -22,6 +22,8 @@ export default function SectionDetailPage() {
   const [selectedPart, setSelectedPart] = useState(null);
   const [showDrawer, setShowDrawer] = useState(false);
   const [showInquiryForm, setShowInquiryForm] = useState(false);
+  const [viewMode, setViewMode] = useState('combined'); // 'separate' | 'combined'
+  const [activeDiagramIndex, setActiveDiagramIndex] = useState(0);
 
   useEffect(() => {
     const loadData = async () => {
@@ -47,6 +49,7 @@ export default function SectionDetailPage() {
           entries.push({ image: img, parts: partsRes.parts || [] });
         }
         setDiagramEntries(entries);
+        setActiveDiagramIndex(0);
 
         // Load subsections
         const subRes = await api.get(`/sections?harvester_id=${harvesterId}&parent_id=${sectionId}`);
@@ -139,29 +142,76 @@ export default function SectionDetailPage() {
 
         <p className="mt-2 text-text-gray">Click a numbered hotspot to view part info</p>
 
-        <div className="mt-8 space-y-8">
-          {diagramEntries.length > 0 ? (
-            diagramEntries.map((entry, idx) => (
-              <div key={entry.image.id}>
-                {diagramEntries.length > 1 && (
-                  <p className="mb-2 text-sm font-medium text-brand-navy">
-                    {section.name}{idx > 0 ? ` ${idx + 1}` : ''}
-                  </p>
-                )}
-                <DiagramViewer
-                  src={entry.image?.image_path}
-                  hotspots={buildHotspots(entry.parts)}
-                  onHotspotClick={handleHotspotClick}
-                  interactive
-                />
-              </div>
-            ))
-          ) : (
+        {diagramEntries.length > 1 && (
+          <div className="mt-4 inline-flex rounded-md border border-border-subtle bg-white p-1">
+            <button
+              onClick={() => setViewMode('separate')}
+              className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${
+                viewMode === 'separate' ? 'bg-brand-navy text-white' : 'text-text-gray hover:text-brand-navy'
+              }`}
+            >
+              Separate
+            </button>
+            <button
+              onClick={() => setViewMode('combined')}
+              className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${
+                viewMode === 'combined' ? 'bg-brand-navy text-white' : 'text-text-gray hover:text-brand-navy'
+              }`}
+            >
+              Combined
+            </button>
+          </div>
+        )}
+
+        <div className="mt-8">
+          {diagramEntries.length === 0 ? (
             <EmptyState
               icon={Wrench}
               title="No diagram available"
               message="This section doesn't have a diagram yet."
             />
+          ) : viewMode === 'separate' && diagramEntries.length > 1 ? (
+            <div>
+              <div className="mb-4 flex flex-wrap gap-2">
+                {diagramEntries.map((entry, idx) => (
+                  <button
+                    key={entry.image.id}
+                    onClick={() => setActiveDiagramIndex(idx)}
+                    className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                      activeDiagramIndex === idx
+                        ? 'bg-brand-navy text-white'
+                        : 'bg-white border border-border-subtle text-text-gray hover:text-brand-navy'
+                    }`}
+                  >
+                    {section.name}{idx > 0 ? ` ${idx + 1}` : ''}
+                  </button>
+                ))}
+              </div>
+              <DiagramViewer
+                src={diagramEntries[activeDiagramIndex]?.image?.image_path}
+                hotspots={buildHotspots(diagramEntries[activeDiagramIndex]?.parts || [])}
+                onHotspotClick={handleHotspotClick}
+                interactive
+              />
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {diagramEntries.map((entry, idx) => (
+                <div key={entry.image.id}>
+                  {diagramEntries.length > 1 && (
+                    <p className="mb-2 text-sm font-medium text-brand-navy">
+                      {section.name}{idx > 0 ? ` ${idx + 1}` : ''}
+                    </p>
+                  )}
+                  <DiagramViewer
+                    src={entry.image?.image_path}
+                    hotspots={buildHotspots(entry.parts)}
+                    onHotspotClick={handleHotspotClick}
+                    interactive
+                  />
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
