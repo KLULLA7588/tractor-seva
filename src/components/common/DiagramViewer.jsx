@@ -1,6 +1,3 @@
-
-
-
 import { useState, useRef, useEffect } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { imageUrl } from '../../lib/utils';
