@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from '../ui/Dialog';
@@ -29,6 +29,26 @@ export default function PartForm({
       fm_code: part?.fm_code || '',
     },
   });
+
+  // FIX: react-hook-form's defaultValues are only applied on the form's
+  // FIRST mount. Since this dialog stays mounted (just shown/hidden via
+  // `open`), clicking "Update" on a different part later doesn't refresh
+  // the input values on its own — they were stuck showing whatever `part`
+  // was at the very first render. Re-syncing here whenever the dialog
+  // opens (or the part being edited changes) fixes the blank/stale box.
+  useEffect(() => {
+    if (open) {
+      reset({
+        serial_no: part?.serial_no || (imageId ? String(nextSerial) : ''),
+        part_no: part?.part_no || '',
+        kubota_part_no: part?.kubota_part_no || '',
+        description: part?.description || '',
+        quantity: part?.quantity || 1,
+        fm_code: part?.fm_code || '',
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, part]);
 
   const onSubmit = async (data) => {
     setSubmitting(true);
