@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Search, ShieldCheck, ArrowRight, Boxes, Crosshair, Eye,
-  MousePointerClick, ListChecks, Send, Tractor, Phone, Mail,
+  MousePointerClick, ListChecks, Send, Phone, Mail,
   MapPin, Clock,
 } from 'lucide-react';
 import Header from '../../components/layout/Header';
@@ -208,29 +208,6 @@ export default function HomePage() {
                 title="Complete Data"
                 description="Part numbers, serial numbers, descriptions, quantities, and Kubota cross-references for every component."
               />
-            </div>
-          </div>
-        </section>
-
-        {/* Supported Models Section */}
-        <section className="w-full bg-bg-light py-14 md:py-20">
-          <div className="mx-auto w-full max-w-6xl px-4 md:px-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-navy/50">
-              Supported Models
-            </p>
-            <h2 className="mt-2 font-oswald text-2xl font-bold text-text-black md:mt-3 md:text-3xl">
-              Harvester models in our catalog
-            </h2>
-            <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-              {['FM-220', 'FM-120', 'FM-180', 'FM-260', 'FM-320', 'FM-450'].map((model) => (
-                <div
-                  key={model}
-                  className="flex flex-col items-center justify-center rounded-lg border border-border-subtle bg-white p-5 md:p-6 shadow-card transition-shadow duration-200 hover:shadow-card-hover"
-                >
-                  <Tractor className="h-8 w-8 text-brand-navy/40" strokeWidth={1} />
-                  <p className="mt-2 font-mono-code text-sm font-medium text-brand-navy">{model}</p>
-                </div>
-              ))}
             </div>
           </div>
         </section>
