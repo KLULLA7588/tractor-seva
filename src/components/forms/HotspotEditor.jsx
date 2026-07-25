@@ -10,12 +10,11 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
       ? { x: parseFloat(existingCoordinate.x_coordinate), y: parseFloat(existingCoordinate.y_coordinate) }
       : null
   );
-  // hotspotSize is a PERCENTAGE of the image's rendered width (not raw px),
-  // so it looks the same size everywhere the image is displayed.
   const [hotspotSize, setHotspotSize] = useState(existingCoordinate?.radius || 2);
   const [saving, setSaving] = useState(false);
   const [imgWidth, setImgWidth] = useState(0);
   const imgRef = useRef(null);
+  const isSubmitting = useRef(false);
 
   const measureImgWidth = () => {
     if (imgRef.current) setImgWidth(imgRef.current.offsetWidth);
@@ -35,10 +34,12 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
   };
 
   const handleSave = async () => {
-    if (!coords) { 
-      toast.error('Please click on the diagram to place a hotspot'); 
-      return; 
+    if (!coords) {
+      toast.error('Please click on the diagram to place a hotspot');
+      return;
     }
+    if (isSubmitting.current) return;
+    isSubmitting.current = true;
     setSaving(true);
     try {
       if (existingCoordinate && existingCoordinate.id) {
@@ -73,6 +74,7 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
       console.error('Hotspot save error:', err);
     } finally {
       setSaving(false);
+      isSubmitting.current = false;
     }
   };
 
@@ -84,7 +86,6 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
     );
   }
 
-  // Convert the stored percentage into actual on-screen pixels for THIS render only
   const pixelRadius = imgWidth > 0 ? (hotspotSize / 100) * imgWidth : 14;
 
   return (
@@ -94,7 +95,7 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
           Click on the diagram to place the hotspot for{' '}
           <span className="font-medium text-brand-navy">{part?.part_no}</span>
         </p>
-        
+
         <div className="relative inline-block max-w-full overflow-hidden rounded-lg border border-border-subtle">
           <img
             ref={imgRef}
@@ -128,7 +129,7 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
       {coords && (
         <div className="space-y-3 rounded-md bg-bg-light p-3">
           <p className="text-xs text-text-gray">Position: X: {coords.x}%, Y: {coords.y}%</p>
-          
+
           <div>
             <label className="block text-sm font-medium text-brand-navy mb-2">
               Hotspot Size: {hotspotSize.toFixed(1)}%
@@ -154,7 +155,6 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
     </div>
   );
 }
-
 
 
 
