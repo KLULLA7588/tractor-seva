@@ -1,16 +1,23 @@
-import { Tractor, Layers, Wrench, Mail } from 'lucide-react';
+import { Tractor, Layers, Boxes, Wrench, Mail } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 
 export default function AdminDashboard() {
   const { data, loading } = useApi('/admin/stats');
 
-  const stats = data?.stats || { harvesters: 0, sections: 0, parts: 0, inquiries: 0 };
+  const stats = data?.stats || {
+    total_harvesters: 0,
+    total_main_sections: 0,
+    total_subsections: 0,
+    total_parts: 0,
+    total_inquiries: 0,
+  };
 
   const cards = [
-    { label: 'Harvesters', value: stats.harvesters, icon: Tractor, color: 'text-brand-navy' },
-    { label: 'Sections', value: stats.sections, icon: Layers, color: 'text-brand-navy' },
-    { label: 'Parts', value: stats.parts, icon: Wrench, color: 'text-brand-navy' },
-    { label: 'Inquiries', value: stats.inquiries, icon: Mail, color: 'text-brand-red' },
+    { label: 'Harvesters', value: stats.total_harvesters, icon: Tractor, color: 'text-brand-navy' },
+    { label: 'Sections', value: stats.total_main_sections, icon: Layers, color: 'text-brand-navy' },
+    { label: 'Sub-sections', value: stats.total_subsections, icon: Boxes, color: 'text-brand-navy' },
+    { label: 'Parts', value: stats.total_parts, icon: Wrench, color: 'text-brand-navy' },
+    { label: 'Inquiries', value: stats.total_inquiries, icon: Mail, color: 'text-brand-red' },
   ];
 
   return (
