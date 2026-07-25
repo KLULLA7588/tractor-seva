@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogFooter } from '../ui/Dialog';
@@ -12,6 +12,19 @@ export default function SectionForm({ open, onOpenChange, section = null, harves
   const { register, handleSubmit, reset, formState: { errors } } = useForm({
     defaultValues: { name: section?.name || '' },
   });
+
+  // FIX: react-hook-form's defaultValues are only applied on the form's
+  // FIRST mount. Since this component stays mounted (just shown/hidden via
+  // `open`), clicking "Update" on a different section later doesn't refresh
+  // the input's value on its own — it was showing whatever `section` was at
+  // the very first render (blank, since it starts as null). Re-syncing here
+  // whenever the dialog opens (or the section being edited changes) fixes
+  // the blank box on Update.
+  useEffect(() => {
+    if (open) {
+      reset({ name: section?.name || '' });
+    }
+  }, [open, section, reset]);
 
   const onSubmit = async (data) => {
     setSubmitting(true);
