@@ -60,9 +60,9 @@ export default function Footer() {
             <ul className="mt-5 space-y-3">
               
               <li>
-                <a href="#support" className="text-sm text-white/60 transition-colors hover:text-white">
+                <Link to="/contact" className="text-sm text-white/60 transition-colors hover:text-white">
                   Contact Us
-                </a>
+                </Link>
               </li>
               <li>
                 <Link to="/catalog" className="text-sm text-white/60 transition-colors hover:text-white">

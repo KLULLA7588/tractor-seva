@@ -8,6 +8,7 @@ import CatalogPage from './pages/public/CatalogPage';
 import HarvesterDetailPage from './pages/public/HarvesterDetailPage';
 import SubsectionsPage from './pages/public/SubsectionsPage';
 import SubsectionDetailPage from './pages/public/SubsectionDetailPage';
+import ContactPage from './pages/public/ContactPage';
 
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -55,6 +56,7 @@ function AnimatedRoutes() {
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<PageTransition><HomePage /></PageTransition>} />
         <Route path="/catalog" element={<PageTransition><CatalogPage /></PageTransition>} />
+        <Route path="/contact" element={<PageTransition><ContactPage /></PageTransition>} />
         <Route path="/harvester/:id" element={<PageTransition><HarvesterDetailPage /></PageTransition>} />
         <Route path="/harvester/:harvesterId/section/:sectionId" element={<PageTransition><SectionDetailPage /></PageTransition>} />
         <Route
