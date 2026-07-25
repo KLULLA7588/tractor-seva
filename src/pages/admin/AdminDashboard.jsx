@@ -2,7 +2,9 @@ import { Tractor, Layers, Boxes, Wrench, Mail } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 
 export default function AdminDashboard() {
-  const { data, loading } = useApi('/admin/stats');
+  // Polls /admin/stats every 5s in the background so counts stay current
+  // without needing to reload the page or navigate away and back.
+  const { data, loading } = useApi('/admin/stats', [], 5000);
 
   const stats = data?.stats || {
     total_harvesters: 0,
