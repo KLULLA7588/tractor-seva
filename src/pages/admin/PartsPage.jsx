@@ -312,10 +312,9 @@ export default function PartsPage() {
         </div>
       )}
 
-      {/* Diagram selector — shown in both modes when there's more than one diagram.
-          In Combined mode this still picks which diagram is "active" for viewing/placing hotspots,
-          it just no longer changes which parts show up in the table below. */}
-      {!loading && diagrams.length > 1 && !hotspotMode && (
+      {/* Diagram selector — only shown in Separate mode. In Combined mode the stacked diagram
+          images themselves are clickable to set which one is "active" for placing hotspots. */}
+      {!loading && diagrams.length > 1 && !hotspotMode && viewMode === 'separate' && (
         <div className="mt-4 flex flex-wrap gap-2">
           {diagrams.map((d, idx) => (
             <button
@@ -345,6 +344,7 @@ export default function PartsPage() {
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div>
             {hotspotMode && hotspotPart ? (
+              // Editing always targets the single active diagram, in either view mode.
               <HotspotEditor
                 imagePath={diagram.image_path}
                 imageId={diagram.id}
@@ -361,6 +361,45 @@ export default function PartsPage() {
                   setHotspotPart(null);
                 }}
               />
+            ) : viewMode === 'combined' && diagrams.length > 1 ? (
+              // NEW: Combined mode shows every diagram in this section stacked, each with its own
+              // hotspots. Click a diagram to make it "active" (highlighted) — that's the one
+              // new placements from the table on the right will land on.
+              <div className="space-y-4">
+                {diagrams.map((d, idx) => {
+                  const dParts = diagramPartsMap[d.id] || [];
+                  const dHotspots = dParts
+                    .filter((p) => p.coordinate?.x_coordinate != null && p.coordinate?.y_coordinate != null)
+                    .map((p) => ({
+                      id: p.coordinate.id,
+                      x_coordinate: p.coordinate.x_coordinate,
+                      y_coordinate: p.coordinate.y_coordinate,
+                      radius: p.coordinate.radius,
+                      label: p.serial_no,
+                      part: p,
+                    }));
+                  const isActive = idx === selectedDiagramIndex;
+                  return (
+                    <div
+                      key={d.id}
+                      onClick={() => setSelectedDiagramIndex(idx)}
+                      className={`cursor-pointer rounded-lg border-2 transition-colors ${
+                        isActive ? 'border-brand-navy' : 'border-transparent hover:border-border-subtle'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between px-1 pb-1">
+                        <p className={`text-xs font-medium ${isActive ? 'text-brand-navy' : 'text-text-gray'}`}>
+                          {currentTargetName}{idx > 0 ? ` ${idx + 1}` : ''}
+                        </p>
+                        {isActive && (
+                          <span className="text-xs font-medium text-brand-navy">Placing here</span>
+                        )}
+                      </div>
+                      <DiagramViewer src={d.image_path} hotspots={dHotspots} className="w-full" interactive />
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
               <DiagramViewer src={diagram.image_path} hotspots={hotspots} className="w-full" interactive />
             )}
