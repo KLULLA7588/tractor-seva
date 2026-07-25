@@ -1,18 +1,31 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import Button from '../ui/Button';
 import { api } from '../../lib/api-client';
 import { imageUrl } from '../../lib/utils';
 
-export default function HotspotEditor({ imagePath, imageId, part, existingCoordinate = null, coordinateId = null, onSaved, onCancel }) {
+export default function HotspotEditor({ imagePath, imageId, part, existingCoordinate = null, onSaved, onCancel }) {
   const [coords, setCoords] = useState(
     existingCoordinate
       ? { x: parseFloat(existingCoordinate.x_coordinate), y: parseFloat(existingCoordinate.y_coordinate) }
       : null
   );
-  const [hotspotSize, setHotspotSize] = useState(existingCoordinate?.radius || 14); // Default reduced to 14px
+  // hotspotSize is a PERCENTAGE of the image's rendered width (not raw px),
+  // so it looks the same size everywhere the image is displayed.
+  const [hotspotSize, setHotspotSize] = useState(existingCoordinate?.radius || 2);
   const [saving, setSaving] = useState(false);
+  const [imgWidth, setImgWidth] = useState(0);
   const imgRef = useRef(null);
+
+  const measureImgWidth = () => {
+    if (imgRef.current) setImgWidth(imgRef.current.offsetWidth);
+  };
+
+  useEffect(() => {
+    measureImgWidth();
+    window.addEventListener('resize', measureImgWidth);
+    return () => window.removeEventListener('resize', measureImgWidth);
+  }, []);
 
   const handleClick = (e) => {
     const rect = imgRef.current.getBoundingClientRect();
@@ -35,18 +48,6 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
           radius: hotspotSize,
         });
         toast.success('Hotspot position updated');
-        onSaved?.(result.coordinate);
-      } else if (coordinateId) {
-        // NEW — first-time placement for a part that already exists in the
-        // database (e.g. added via Bulk Upload) but has no position yet.
-        // Reuses the existing update-hotspot endpoint instead of creating
-        // a new part, so no duplicate part record is ever made.
-        const result = await api.put(`/admin/parts/hotspots/${coordinateId}`, {
-          x_coordinate: coords.x,
-          y_coordinate: coords.y,
-          radius: hotspotSize,
-        });
-        toast.success('Hotspot placed successfully');
         onSaved?.(result.coordinate);
       } else if (existingCoordinate) {
         toast.error('Hotspot coordinate ID is missing');
@@ -83,6 +84,9 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
     );
   }
 
+  // Convert the stored percentage into actual on-screen pixels for THIS render only
+  const pixelRadius = imgWidth > 0 ? (hotspotSize / 100) * imgWidth : 14;
+
   return (
     <div className="space-y-4">
       <div>
@@ -92,19 +96,26 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
         </p>
         
         <div className="relative inline-block max-w-full overflow-hidden rounded-lg border border-border-subtle">
-          <img ref={imgRef} src={imageUrl(imagePath)} alt="Diagram" onClick={handleClick} className="block max-w-full cursor-crosshair h-auto" />
+          <img
+            ref={imgRef}
+            src={imageUrl(imagePath)}
+            alt="Diagram"
+            onClick={handleClick}
+            onLoad={measureImgWidth}
+            className="block max-w-full cursor-crosshair h-auto"
+          />
           {coords && (
             <div
               onDoubleClick={(e) => {
                 e.stopPropagation();
-                setHotspotSize((prev) => Math.min(prev + 4, 60));
+                setHotspotSize((prev) => Math.min(prev + 0.3, 8));
               }}
               className="absolute flex items-center justify-center rounded-full bg-white text-xs font-bold text-black shadow-lg border-2 border-black hover:brightness-95 transition-all"
               style={{
                 left: `${coords.x}%`,
                 top: `${coords.y}%`,
-                width: `${hotspotSize * 2}px`,
-                height: `${hotspotSize * 2}px`,
+                width: `${pixelRadius * 2}px`,
+                height: `${pixelRadius * 2}px`,
                 transform: 'translate(-50%, -50%)',
               }}
             >
@@ -120,17 +131,18 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
           
           <div>
             <label className="block text-sm font-medium text-brand-navy mb-2">
-              Hotspot Size: {hotspotSize}px
+              Hotspot Size: {hotspotSize.toFixed(1)}%
             </label>
             <input
               type="range"
-              min="8"
-              max="60"
+              min="0.5"
+              max="8"
+              step="0.1"
               value={hotspotSize}
-              onChange={(e) => setHotspotSize(parseInt(e.target.value))}
+              onChange={(e) => setHotspotSize(parseFloat(e.target.value))}
               className="w-full h-2 bg-border-subtle rounded-lg appearance-none cursor-pointer accent-brand-navy"
             />
-            <p className="text-xs text-text-gray mt-1">Adjust circle size to avoid overlaps with other hotspots. Double-click the hotspot to increase its size too.</p>
+            <p className="text-xs text-text-gray mt-1">Size is relative to the image, so it stays consistent everywhere it's shown. Double-click the hotspot to increase its size too.</p>
           </div>
         </div>
       )}
@@ -148,19 +160,13 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
 
 
 
-
-
-
-
-
-
 // import { useState, useRef } from 'react';
 // import { toast } from 'sonner';
 // import Button from '../ui/Button';
 // import { api } from '../../lib/api-client';
 // import { imageUrl } from '../../lib/utils';
 
-// export default function HotspotEditor({ imagePath, imageId, part, existingCoordinate = null, onSaved, onCancel }) {
+// export default function HotspotEditor({ imagePath, imageId, part, existingCoordinate = null, coordinateId = null, onSaved, onCancel }) {
 //   const [coords, setCoords] = useState(
 //     existingCoordinate
 //       ? { x: parseFloat(existingCoordinate.x_coordinate), y: parseFloat(existingCoordinate.y_coordinate) }
@@ -191,6 +197,18 @@ export default function HotspotEditor({ imagePath, imageId, part, existingCoordi
 //           radius: hotspotSize,
 //         });
 //         toast.success('Hotspot position updated');
+//         onSaved?.(result.coordinate);
+//       } else if (coordinateId) {
+//         // NEW — first-time placement for a part that already exists in the
+//         // database (e.g. added via Bulk Upload) but has no position yet.
+//         // Reuses the existing update-hotspot endpoint instead of creating
+//         // a new part, so no duplicate part record is ever made.
+//         const result = await api.put(`/admin/parts/hotspots/${coordinateId}`, {
+//           x_coordinate: coords.x,
+//           y_coordinate: coords.y,
+//           radius: hotspotSize,
+//         });
+//         toast.success('Hotspot placed successfully');
 //         onSaved?.(result.coordinate);
 //       } else if (existingCoordinate) {
 //         toast.error('Hotspot coordinate ID is missing');
