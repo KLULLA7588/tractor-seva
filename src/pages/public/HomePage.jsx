@@ -1,6 +1,5 @@
-import { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Search, ShieldCheck, ArrowRight, Boxes, Crosshair, Eye,
   MousePointerClick, ListChecks, Send, Phone, Mail,
@@ -104,7 +103,7 @@ export default function HomePage() {
               <StatCounter target={180} suffix="+" label="Parts" inView={statsInView} />
             </motion.div>
 
-            {/* Tractor Illustration — now an interactive 3D tilt scene */}
+            {/* Tractor Illustration — continuously animated 3D hero visual */}
             <Hero3DIllustration />
           </div>
         </section>
@@ -321,91 +320,96 @@ function FeatureCard({ icon: Icon, title, description }) {
 
 /**
  * 3D interactive hero illustration.
- * Tilts the tractor SVG toward the cursor using a real CSS 3D perspective
- * (rotateX/rotateY + translateZ), with a shadow that shifts along with it
- * to sell the depth. Falls back to resting flat when the mouse leaves, and
- * only renders on md+ (matches the original illustration's visibility).
+ * Continuously animates on its own — no hover needed:
+ *  - the whole tractor gently floats up/down (translateY)
+ *  - it slowly rotates back and forth in true 3D (rotateX/rotateY via perspective)
+ *  - the wheels spin continuously for extra depth/motion
+ *  - the shadow beneath it pulses in sync with the float, selling the "lift"
+ * Only renders on md+ (matches the original illustration's visibility).
  */
 function Hero3DIllustration() {
-  const containerRef = useRef(null);
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  const rotateX = useSpring(useTransform(mouseY, [-60, 60], [14, -14]), {
-    stiffness: 150,
-    damping: 18,
-  });
-  const rotateY = useSpring(useTransform(mouseX, [-60, 60], [-14, 14]), {
-    stiffness: 150,
-    damping: 18,
-  });
-  const shadowX = useTransform(rotateY, [-14, 14], [-16, 16]);
-  const shadowY = useTransform(rotateX, [-14, 14], [16, -16]);
-
-  const handleMouseMove = (e) => {
-    const rect = containerRef.current.getBoundingClientRect();
-    const px = e.clientX - rect.left - rect.width / 2;
-    const py = e.clientY - rect.top - rect.height / 2;
-    mouseX.set(Math.max(-60, Math.min(60, px / 4)));
-    mouseY.set(Math.max(-60, Math.min(60, py / 4)));
-  };
-
-  const handleMouseLeave = () => {
-    mouseX.set(0);
-    mouseY.set(0);
-  };
-
   return (
-    <div
-      ref={containerRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      className="relative mx-auto max-w-7xl hidden md:block"
-      style={{ perspective: 1000 }}
-    >
+    <div className="relative mx-auto max-w-7xl hidden md:block" style={{ perspective: 1200 }}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.6 }}
         className="flex justify-end px-4"
-        style={{ transformStyle: 'preserve-3d' }}
       >
-        <motion.svg
-          viewBox="0 0 600 200"
-          className="h-auto w-[280px] md:w-[340px] lg:w-[380px] opacity-90"
-          fill="none"
-          style={{
-            rotateX,
-            rotateY,
-            transformStyle: 'preserve-3d',
-            filter: useTransform(
-              [shadowX, shadowY],
-              ([sx, sy]) => `drop-shadow(${sx}px ${sy}px 18px rgba(23,34,99,0.28))`
-            ),
+        <motion.div
+          style={{ transformStyle: 'preserve-3d' }}
+          animate={{
+            y: [0, -14, 0],
+            rotateY: [-10, 10, -10],
+            rotateX: [4, -4, 4],
+          }}
+          transition={{
+            duration: 6,
+            repeat: Infinity,
+            ease: 'easeInOut',
           }}
         >
-          <g stroke="#172263" strokeWidth="1.5" opacity="0.4">
-            <path d="M80 140 L80 100 L120 80 L200 80 L240 60 L340 60 L340 100 L380 100 L380 140" />
-            <path d="M120 80 L120 140" />
-            <path d="M200 80 L200 140" />
-            <path d="M240 60 L240 140" />
-            <circle cx="140" cy="150" r="35" />
-            <circle cx="140" cy="150" r="20" />
-            <circle cx="320" cy="150" r="45" />
-            <circle cx="320" cy="150" r="28" />
-            <line x1="260" y1="80" x2="260" y2="140" />
-            <line x1="280" y1="80" x2="280" y2="140" />
-            <line x1="300" y1="80" x2="300" y2="140" />
-            <line x1="220" y1="60" x2="220" y2="30" />
-            <line x1="218" y1="30" x2="225" y2="30" />
-          </g>
-          <circle cx="140" cy="150" r="10" fill="#172263" />
-          <text x="137" y="154" fill="white" fontSize="9" fontWeight="bold">1</text>
-          <circle cx="280" cy="100" r="10" fill="#172263" />
-          <text x="277" y="104" fill="white" fontSize="9" fontWeight="bold">2</text>
-          <circle cx="320" cy="150" r="10" fill="#172263" />
-          <text x="317" y="154" fill="white" fontSize="9" fontWeight="bold">3</text>
-        </motion.svg>
+          <motion.svg
+            viewBox="0 0 600 200"
+            className="h-auto w-[280px] md:w-[340px] lg:w-[380px] opacity-90"
+            fill="none"
+            animate={{
+              filter: [
+                'drop-shadow(0px 10px 14px rgba(23,34,99,0.22))',
+                'drop-shadow(0px 26px 22px rgba(23,34,99,0.32))',
+                'drop-shadow(0px 10px 14px rgba(23,34,99,0.22))',
+              ],
+            }}
+            transition={{
+              duration: 6,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          >
+            <g stroke="#172263" strokeWidth="1.5" opacity="0.4">
+              <path d="M80 140 L80 100 L120 80 L200 80 L240 60 L340 60 L340 100 L380 100 L380 140" />
+              <path d="M120 80 L120 140" />
+              <path d="M200 80 L200 140" />
+              <path d="M240 60 L240 140" />
+              <line x1="260" y1="80" x2="260" y2="140" />
+              <line x1="280" y1="80" x2="280" y2="140" />
+              <line x1="300" y1="80" x2="300" y2="140" />
+              <line x1="220" y1="60" x2="220" y2="30" />
+              <line x1="218" y1="30" x2="225" y2="30" />
+            </g>
+
+            {/* Front wheel — spins continuously */}
+            <motion.g
+              style={{ originX: '140px', originY: '150px' }}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+            >
+              <circle cx="140" cy="150" r="35" stroke="#172263" strokeWidth="1.5" opacity="0.4" />
+              <circle cx="140" cy="150" r="20" stroke="#172263" strokeWidth="1.5" opacity="0.4" />
+              <line x1="140" y1="115" x2="140" y2="185" stroke="#172263" strokeWidth="1" opacity="0.3" />
+              <line x1="105" y1="150" x2="175" y2="150" stroke="#172263" strokeWidth="1" opacity="0.3" />
+            </motion.g>
+
+            {/* Rear wheel — spins continuously, slightly slower for parallax feel */}
+            <motion.g
+              style={{ originX: '320px', originY: '150px' }}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+            >
+              <circle cx="320" cy="150" r="45" stroke="#172263" strokeWidth="1.5" opacity="0.4" />
+              <circle cx="320" cy="150" r="28" stroke="#172263" strokeWidth="1.5" opacity="0.4" />
+              <line x1="320" y1="105" x2="320" y2="195" stroke="#172263" strokeWidth="1" opacity="0.3" />
+              <line x1="275" y1="150" x2="365" y2="150" stroke="#172263" strokeWidth="1" opacity="0.3" />
+            </motion.g>
+
+            <circle cx="140" cy="150" r="10" fill="#172263" />
+            <text x="137" y="154" fill="white" fontSize="9" fontWeight="bold">1</text>
+            <circle cx="280" cy="100" r="10" fill="#172263" />
+            <text x="277" y="104" fill="white" fontSize="9" fontWeight="bold">2</text>
+            <circle cx="320" cy="150" r="10" fill="#172263" />
+            <text x="317" y="154" fill="white" fontSize="9" fontWeight="bold">3</text>
+          </motion.svg>
+        </motion.div>
       </motion.div>
     </div>
   );
