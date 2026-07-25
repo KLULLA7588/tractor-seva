@@ -92,7 +92,7 @@ export default function SubsectionDetailPage() {
     return (
       <div className="flex flex-col min-h-screen bg-bg-light">
         <Header />
-        <main className="flex-1 w-full bg-bg-light py-8 md:py-12">
+        <main className="flex-1 w-full bg-bg-light py-10 md:py-16">
           <div className="mx-auto w-full max-w-6xl px-4 md:px-6">
             <DiagramSkeleton />
           </div>
@@ -106,8 +106,9 @@ export default function SubsectionDetailPage() {
     <div className="flex flex-col min-h-screen bg-bg-light">
       <Header />
 
-      <main className="flex-1 w-full bg-bg-light py-8 md:py-12">
-        <div className="mx-auto w-full max-w-6xl px-4 md:px-6">
+      <main className="flex-1 w-full">
+        <div className="w-full bg-gradient-to-b from-brand-navy-50 to-bg-light py-10 md:py-16">
+          <div className="mx-auto w-full max-w-6xl px-4 md:px-6">
             {/* Step Indicator */}
             <StepIndicator step="3" label="Identify Part" />
 
@@ -125,7 +126,10 @@ export default function SubsectionDetailPage() {
             {/* Header Section */}
             <div className="mt-8 flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <h1 className="font-oswald text-3xl md:text-4xl font-bold text-text-black">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-navy/50">
+                  Step Three
+                </p>
+                <h1 className="mt-1 font-oswald text-3xl md:text-4xl font-bold text-text-black">
                   {section?.name}
                 </h1>
                 <p className="mt-2 text-sm md:text-base text-text-gray">
@@ -145,10 +149,10 @@ export default function SubsectionDetailPage() {
             </div>
 
             {diagramEntries.length > 1 && (
-              <div className="mt-4 inline-flex rounded-md border border-border-subtle bg-white p-1">
+              <div className="mt-6 inline-flex rounded-full bg-white p-1 shadow-card">
                 <button
                   onClick={() => setViewMode('separate')}
-                  className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                     viewMode === 'separate' ? 'bg-brand-navy text-white' : 'text-text-gray hover:text-brand-navy'
                   }`}
                 >
@@ -156,7 +160,7 @@ export default function SubsectionDetailPage() {
                 </button>
                 <button
                   onClick={() => setViewMode('combined')}
-                  className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                     viewMode === 'combined' ? 'bg-brand-navy text-white' : 'text-text-gray hover:text-brand-navy'
                   }`}
                 >
@@ -164,167 +168,170 @@ export default function SubsectionDetailPage() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
 
-            {/* Diagram Viewer(s) */}
-            <div className="mt-8">
-              {diagramEntries.length === 0 ? (
-                <EmptyState
-                  icon={Wrench}
-                  title="No diagram available"
-                  message="This section doesn't have a diagram yet."
-                />
-              ) : viewMode === 'separate' && diagramEntries.length > 1 ? (
-                <div>
-                  <div className="mb-4 flex flex-wrap gap-2">
-                    {diagramEntries.map((entry, idx) => (
-                      <button
-                        key={entry.image.id}
-                        onClick={() => setActiveDiagramIndex(idx)}
-                        className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                          activeDiagramIndex === idx
-                            ? 'bg-brand-navy text-white'
-                            : 'bg-white border border-border-subtle text-text-gray hover:text-brand-navy'
-                        }`}
-                      >
+        <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6">
+          {/* Diagram Viewer(s) */}
+          <div>
+            {diagramEntries.length === 0 ? (
+              <EmptyState
+                icon={Wrench}
+                title="No diagram available"
+                message="This section doesn't have a diagram yet."
+              />
+            ) : viewMode === 'separate' && diagramEntries.length > 1 ? (
+              <div>
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {diagramEntries.map((entry, idx) => (
+                    <button
+                      key={entry.image.id}
+                      onClick={() => setActiveDiagramIndex(idx)}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        activeDiagramIndex === idx
+                          ? 'bg-brand-navy text-white shadow-button'
+                          : 'bg-white text-text-gray shadow-card hover:text-brand-navy'
+                      }`}
+                    >
+                      {section?.name}{idx > 0 ? ` ${idx + 1}` : ''}
+                    </button>
+                  ))}
+                </div>
+                <div className="overflow-hidden rounded-2xl shadow-panel">
+                  <DiagramViewer
+                    src={diagramEntries[activeDiagramIndex]?.image?.image_path}
+                    hotspots={buildHotspots(diagramEntries[activeDiagramIndex]?.parts || [])}
+                    onHotspotClick={handleHotspotClick}
+                    interactive
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {diagramEntries.map((entry, idx) => (
+                  <div key={entry.image.id} className="overflow-hidden rounded-2xl shadow-panel">
+                    {diagramEntries.length > 1 && (
+                      <p className="px-4 pt-3 text-sm font-medium text-white bg-black">
                         {section?.name}{idx > 0 ? ` ${idx + 1}` : ''}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="overflow-hidden rounded-lg border border-border-subtle bg-black shadow-card">
+                      </p>
+                    )}
                     <DiagramViewer
-                      src={diagramEntries[activeDiagramIndex]?.image?.image_path}
-                      hotspots={buildHotspots(diagramEntries[activeDiagramIndex]?.parts || [])}
+                      src={entry.image?.image_path}
+                      hotspots={buildHotspots(entry.parts)}
                       onHotspotClick={handleHotspotClick}
                       interactive
                     />
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {diagramEntries.map((entry, idx) => (
-                    <div key={entry.image.id} className="overflow-hidden rounded-lg border border-border-subtle bg-black shadow-card">
-                      {diagramEntries.length > 1 && (
-                        <p className="px-4 pt-3 text-sm font-medium text-white">
-                          {section?.name}{idx > 0 ? ` ${idx + 1}` : ''}
-                        </p>
-                      )}
-                      <DiagramViewer
-                        src={entry.image?.image_path}
-                        hotspots={buildHotspots(entry.parts)}
-                        onHotspotClick={handleHotspotClick}
-                        interactive
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Sub-sections Panel */}
-            {section?.subsections && section.subsections.length > 0 && (
-              <div className="mt-10">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="font-oswald text-2xl md:text-3xl font-bold text-text-black">
-                    Sub-sections
-                  </h2>
-                  <button
-                    onClick={() => document.getElementById('subsections-panel')?.classList.toggle('hidden')}
-                    className="text-sm font-medium text-brand-navy hover:text-brand-navy/70 transition-colors"
-                  >
-                    Hide
-                  </button>
-                </div>
-                <div id="subsections-panel" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {section.subsections.map((subsection) => (
-                    <button
-                      key={subsection.id}
-                      onClick={() => navigate(`/harvester/${harvesterId}/section/${sectionId}/${subsection.id}`)}
-                      className="group overflow-hidden rounded-lg border border-border-subtle bg-white p-5 shadow-card transition-all duration-200 hover:border-brand-navy hover:shadow-card-hover text-left"
-                    >
-                      <h3 className="font-oswald text-lg font-semibold text-text-black">
-                        {subsection.name}
-                      </h3>
-                      <div className="mt-3 flex items-center text-sm font-medium text-brand-navy transition-all group-hover:gap-1">
-                        View Details
-                        <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                ))}
               </div>
             )}
+          </div>
 
-            {/* Parts Section */}
-            {allParts.length > 0 && (
-              <div className="mt-10">
+          {/* Sub-sections Panel */}
+          {section?.subsections && section.subsections.length > 0 && (
+            <div className="mt-12">
+              <div className="flex items-center justify-between mb-6">
                 <h2 className="font-oswald text-2xl md:text-3xl font-bold text-text-black">
-                  Parts
+                  Sub-sections
                 </h2>
-                <div className="mt-6 overflow-hidden rounded-lg border border-border-subtle bg-white shadow-card">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>#</TableHead>
-                        <TableHead>Serial No</TableHead>
-                        <TableHead>Part No</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Qty</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {allParts.map((part, index) => (
-                        <TableRow key={part.id}>
-                          <TableCell className="font-medium text-brand-navy">
-                            {index + 1}
-                          </TableCell>
-                          <TableCell className="font-mono-code text-text-black">
-                            {part.serial_no || '-'}
-                          </TableCell>
-                          <TableCell className="font-mono-code font-medium text-brand-navy">
-                            {part.part_no}
-                          </TableCell>
-                          <TableCell className="max-w-xs truncate text-text-gray">
-                            {part.description || '-'}
-                          </TableCell>
-                          <TableCell>{part.quantity}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedPart(part);
-                                  setShowDrawer(true);
-                                }}
-                              >
-                                Details
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => handleInquiry(part)}
-                              >
-                                Inquire
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <button
+                  onClick={() => document.getElementById('subsections-panel')?.classList.toggle('hidden')}
+                  className="text-sm font-medium text-brand-navy hover:text-brand-navy/70 transition-colors"
+                >
+                  Hide
+                </button>
               </div>
-            )}
+              <div id="subsections-panel" className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {section.subsections.map((subsection) => (
+                  <button
+                    key={subsection.id}
+                    onClick={() => navigate(`/harvester/${harvesterId}/section/${sectionId}/${subsection.id}`)}
+                    className="group overflow-hidden rounded-2xl bg-white p-6 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover text-left"
+                  >
+                    <h3 className="font-oswald text-lg font-semibold text-text-black">
+                      {subsection.name}
+                    </h3>
+                    <div className="mt-3 flex items-center text-sm font-medium text-brand-navy transition-all group-hover:gap-1">
+                      View Details
+                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-            {allParts.length === 0 && (
-              <div className="mt-10">
-                <EmptyState
-                  icon={Wrench}
-                  title="No parts available"
-                  message="This section doesn't have any parts configured yet."
-                />
+          {/* Parts Section */}
+          {allParts.length > 0 && (
+            <div className="mt-12">
+              <h2 className="font-oswald text-2xl md:text-3xl font-bold text-text-black">
+                Parts
+              </h2>
+              <div className="mt-6 overflow-hidden rounded-2xl bg-white shadow-card">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Serial No</TableHead>
+                      <TableHead>Part No</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Qty</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allParts.map((part, index) => (
+                      <TableRow key={part.id}>
+                        <TableCell className="font-medium text-brand-navy">
+                          {index + 1}
+                        </TableCell>
+                        <TableCell className="font-mono-code text-text-black">
+                          {part.serial_no || '-'}
+                        </TableCell>
+                        <TableCell className="font-mono-code font-medium text-brand-navy">
+                          {part.part_no}
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate text-text-gray">
+                          {part.description || '-'}
+                        </TableCell>
+                        <TableCell>{part.quantity}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedPart(part);
+                                setShowDrawer(true);
+                              }}
+                            >
+                              Details
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleInquiry(part)}
+                            >
+                              Inquire
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-            )}
+            </div>
+          )}
+
+          {allParts.length === 0 && (
+            <div className="mt-12">
+              <EmptyState
+                icon={Wrench}
+                title="No parts available"
+                message="This section doesn't have any parts configured yet."
+              />
+            </div>
+          )}
         </div>
       </main>
 

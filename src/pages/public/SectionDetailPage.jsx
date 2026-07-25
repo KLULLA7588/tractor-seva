@@ -91,7 +91,7 @@ export default function SectionDetailPage() {
     return (
       <div className="min-h-screen bg-bg-light">
         <Header />
-        <div className="mx-auto max-w-7xl px-4 py-8 md:px-6">
+        <div className="mx-auto max-w-7xl px-4 py-10 md:px-6">
           <DiagramSkeleton />
         </div>
       </div>
@@ -102,7 +102,7 @@ export default function SectionDetailPage() {
     return (
       <div className="min-h-screen bg-bg-light">
         <Header />
-        <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 text-center">
+        <div className="mx-auto max-w-7xl px-4 py-10 md:px-6 text-center">
           <p className="text-text-gray">Section not found</p>
         </div>
       </div>
@@ -113,57 +113,65 @@ export default function SectionDetailPage() {
     <div className="min-h-screen bg-bg-light">
       <Header />
 
-      <div className="mx-auto max-w-7xl px-4 py-8 md:px-6">
-        <StepIndicator step="3" label="Identify Part" />
-        <Breadcrumb
-          items={[
-            { label: 'Tractor Seva', path: '/' },
-            { label: 'Catalog', path: '/catalog' },
-            { label: 'Harvester', path: `/harvester/${harvesterId}` },
-            { label: section.name },
-          ]}
-        />
+      <div className="w-full bg-gradient-to-b from-brand-navy-50 to-bg-light pb-4 pt-8 md:pt-10">
+        <div className="mx-auto max-w-7xl px-4 md:px-6">
+          <StepIndicator step="3" label="Identify Part" />
+          <Breadcrumb
+            items={[
+              { label: 'Tractor Seva', path: '/' },
+              { label: 'Catalog', path: '/catalog' },
+              { label: 'Harvester', path: `/harvester/${harvesterId}` },
+              { label: section.name },
+            ]}
+          />
 
-        <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <h1 className="font-oswald text-3xl font-bold text-brand-navy">
-            {section.name}
-          </h1>
-          {subsections.length > 0 && (
-            <Button
-              onClick={() => navigate(`/harvester/${harvesterId}/section/${sectionId}/subsections`)}
-              variant="outline"
-              className="inline-flex items-center gap-2"
-            >
-              View Sub-parts
-              <ChevronDown className="h-4 w-4" />
-            </Button>
+          <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-navy/50">
+                Step Three
+              </p>
+              <h1 className="mt-1 font-oswald text-3xl md:text-4xl font-bold text-text-black">
+                {section.name}
+              </h1>
+              <p className="mt-2 text-text-gray">Click a numbered hotspot to view part info</p>
+            </div>
+            {subsections.length > 0 && (
+              <Button
+                onClick={() => navigate(`/harvester/${harvesterId}/section/${sectionId}/subsections`)}
+                variant="outline"
+                className="inline-flex items-center gap-2 self-start md:self-auto"
+              >
+                View Sub-parts
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          {diagramEntries.length > 1 && (
+            <div className="mt-6 inline-flex rounded-full bg-white p-1 shadow-card">
+              <button
+                onClick={() => setViewMode('separate')}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  viewMode === 'separate' ? 'bg-brand-navy text-white' : 'text-text-gray hover:text-brand-navy'
+                }`}
+              >
+                Separate
+              </button>
+              <button
+                onClick={() => setViewMode('combined')}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  viewMode === 'combined' ? 'bg-brand-navy text-white' : 'text-text-gray hover:text-brand-navy'
+                }`}
+              >
+                Combined
+              </button>
+            </div>
           )}
         </div>
+      </div>
 
-        <p className="mt-2 text-text-gray">Click a numbered hotspot to view part info</p>
-
-        {diagramEntries.length > 1 && (
-          <div className="mt-4 inline-flex rounded-md border border-border-subtle bg-white p-1">
-            <button
-              onClick={() => setViewMode('separate')}
-              className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${
-                viewMode === 'separate' ? 'bg-brand-navy text-white' : 'text-text-gray hover:text-brand-navy'
-              }`}
-            >
-              Separate
-            </button>
-            <button
-              onClick={() => setViewMode('combined')}
-              className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${
-                viewMode === 'combined' ? 'bg-brand-navy text-white' : 'text-text-gray hover:text-brand-navy'
-              }`}
-            >
-              Combined
-            </button>
-          </div>
-        )}
-
-        <div className="mt-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 md:px-6">
+        <div>
           {diagramEntries.length === 0 ? (
             <EmptyState
               icon={Wrench}
@@ -177,22 +185,24 @@ export default function SectionDetailPage() {
                   <button
                     key={entry.image.id}
                     onClick={() => setActiveDiagramIndex(idx)}
-                    className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                       activeDiagramIndex === idx
-                        ? 'bg-brand-navy text-white'
-                        : 'bg-white border border-border-subtle text-text-gray hover:text-brand-navy'
+                        ? 'bg-brand-navy text-white shadow-button'
+                        : 'bg-white text-text-gray shadow-card hover:text-brand-navy'
                     }`}
                   >
                     {section.name}{idx > 0 ? ` ${idx + 1}` : ''}
                   </button>
                 ))}
               </div>
-              <DiagramViewer
-                src={diagramEntries[activeDiagramIndex]?.image?.image_path}
-                hotspots={buildHotspots(diagramEntries[activeDiagramIndex]?.parts || [])}
-                onHotspotClick={handleHotspotClick}
-                interactive
-              />
+              <div className="overflow-hidden rounded-2xl shadow-panel">
+                <DiagramViewer
+                  src={diagramEntries[activeDiagramIndex]?.image?.image_path}
+                  hotspots={buildHotspots(diagramEntries[activeDiagramIndex]?.parts || [])}
+                  onHotspotClick={handleHotspotClick}
+                  interactive
+                />
+              </div>
             </div>
           ) : (
             <div className="space-y-8">
@@ -203,12 +213,14 @@ export default function SectionDetailPage() {
                       {section.name}{idx > 0 ? ` ${idx + 1}` : ''}
                     </p>
                   )}
-                  <DiagramViewer
-                    src={entry.image?.image_path}
-                    hotspots={buildHotspots(entry.parts)}
-                    onHotspotClick={handleHotspotClick}
-                    interactive
-                  />
+                  <div className="overflow-hidden rounded-2xl shadow-panel">
+                    <DiagramViewer
+                      src={entry.image?.image_path}
+                      hotspots={buildHotspots(entry.parts)}
+                      onHotspotClick={handleHotspotClick}
+                      interactive
+                    />
+                  </div>
                 </div>
               ))}
             </div>
