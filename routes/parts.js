@@ -12,6 +12,7 @@ import {
   deletePart,
   bulkCreateParts,
   deletePartsByImage,
+  addHotspotToExistingPart,
 } from '../controllers/partController.js';
 
 const router = express.Router();
@@ -22,13 +23,11 @@ router.post('/', auth, createPart);
 router.post('/bulk', auth, bulkCreateParts);
 router.delete('/', auth, deletePartsByImage);
 router.put('/hotspots/:coordinate_id', auth, updateHotspot);
+router.post('/:id/hotspots', auth, addHotspotToExistingPart);
 router.put('/:id', auth, updatePart);
 router.delete('/:id', auth, deletePart);
 
 export default router;
-
-
-
 
 
 

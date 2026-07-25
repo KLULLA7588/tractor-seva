@@ -539,3 +539,72 @@ export async function deletePart(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * POST /api/admin/parts/:id/hotspots
+ * Attaches a coordinate to an ALREADY-EXISTING part on a given image.
+ * Needed specifically for: placing an existing part (that has no
+ * image_coordinates row at all for this image yet) onto a different
+ * diagram — e.g. Combined mode's "place on this diagram" action.
+ *
+ * This is different from updateHotspot (which only updates a coordinate
+ * ROW THAT ALREADY EXISTS) — here, no row exists yet for (part_id, image_id).
+ *
+ * NEW — does not modify any existing function above.
+ */
+export async function addHotspotToExistingPart(req, res, next) {
+  try {
+    const { id } = req.params; // part id
+    const { image_id, x_coordinate, y_coordinate, radius } = req.body;
+
+    validateUUID(id, 'id');
+    validateRequired(req.body, ['image_id', 'x_coordinate', 'y_coordinate']);
+    validateUUID(image_id, 'image_id');
+    validateCoordinate(x_coordinate, 'x_coordinate');
+    validateCoordinate(y_coordinate, 'y_coordinate');
+
+    // Confirm the part exists
+    const [partRows] = await pool.query('SELECT id FROM parts WHERE id = ?', [uuidToBuffer(id)]);
+    if (partRows.length === 0) {
+      throw new NotFoundError('PART_NOT_FOUND', 'Part not found');
+    }
+
+    // Confirm the image exists
+    const [imageRows] = await pool.query('SELECT id FROM images WHERE id = ?', [uuidToBuffer(image_id)]);
+    if (imageRows.length === 0) {
+      throw new NotFoundError('IMAGE_NOT_FOUND', 'Diagram not found');
+    }
+
+    // Same unique-constraint check createPart already does — prevents a
+    // second hotspot for the same part on the same image.
+    const [existingCoord] = await pool.query(
+      'SELECT id FROM image_coordinates WHERE part_id = ? AND image_id = ?',
+      [uuidToBuffer(id), uuidToBuffer(image_id)]
+    );
+    if (existingCoord.length > 0) {
+      throw new ConflictError('CONFLICT', 'A hotspot for this part and image already exists');
+    }
+
+    // radius is a PERCENTAGE — use parseFloat so decimals (e.g. 2.3) survive,
+    // matching updateHotspot/createPart's existing convention.
+    const finalRadius = radius !== undefined ? parseFloat(radius) : 2;
+
+    const coordId = generateUUID();
+    await pool.query(
+      `INSERT INTO image_coordinates (id, part_id, image_id, x_coordinate, y_coordinate, radius)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [uuidToBuffer(coordId), uuidToBuffer(id), uuidToBuffer(image_id), parseFloat(x_coordinate), parseFloat(y_coordinate), finalRadius]
+    );
+
+    const [coordRows] = await pool.query(
+      'SELECT id, part_id, image_id, x_coordinate, y_coordinate, radius, created_at FROM image_coordinates WHERE id = ?',
+      [uuidToBuffer(coordId)]
+    );
+
+    const coordinate = convertRow(coordRows[0], COORD_FIELDS);
+
+    res.status(201).json({ success: true, coordinate });
+  } catch (err) {
+    next(err);
+  }
+}
