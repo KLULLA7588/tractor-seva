@@ -38,7 +38,7 @@ export default function Header({ isAdmin = false, onMenuClick }) {
       {!isAdmin && (
         <nav className="hidden items-center gap-8 md:flex">
           <NavLink to="/catalog">Catalog</NavLink>
-          <NavLink to="/catalog">Models</NavLink>
+          
           <NavLink to="/#support">Support</NavLink>
         </nav>
       )}
