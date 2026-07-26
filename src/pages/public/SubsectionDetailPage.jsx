@@ -245,7 +245,7 @@ export default function SubsectionDetailPage() {
                 {section.subsections.map((subsection) => (
                   <button
                     key={subsection.id}
-                    onClick={() => navigate(`/harvester/${harvesterId}/section/${sectionId}/${subsection.id}`)}
+                    onClick={() => navigate(`/harvester/${harvesterId}/section/${sectionId}/sub/${subsection.id}`)}
                     className="group overflow-hidden rounded-2xl bg-white p-6 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover text-left"
                   >
                     <h3 className="font-oswald text-lg font-semibold text-text-black">
