@@ -167,8 +167,14 @@ export default function DiagramViewer({ src, hotspots = [], onHotspotClick, inte
               Size is stored as a PERCENTAGE of the image's rendered width, so it stays
               visually consistent no matter how wide the image is displayed.
               Desktop rendering below is unchanged; mobile gets a separate branch
-              with dynamic font sizing so numbers don't overflow small circles. */}
-          {interactive &&
+              with dynamic font sizing so numbers don't overflow small circles.
+              FIX: added `imageLoaded` to this condition — hotspots now wait until
+              the image has actually finished loading (and imgBox has been measured
+              correctly) before rendering at all. Previously they rendered immediately
+              using the initial {width:0, height:0} box, showing clustered/misplaced
+              for a moment before snapping into their real position once the image
+              loaded — this removes that flash/jump entirely. */}
+          {interactive && imageLoaded &&
             hotspots.map((hotspot) => {
               const radiusPercent = hotspot.radius || 2;
               const pixelRadius = (radiusPercent / 100) * imgBox.width;
