@@ -123,7 +123,15 @@ router.get('/sections/:id/diagram', async (req, res, next) => {
 
 /**
  * GET /api/diagrams/:id/parts
- * Get all parts with hotspots for a diagram (public).
+ * Get all parts for a diagram (public), including "extra parts" that have
+ * no hotspot position yet.
+ *
+ * UPDATED — this was previously using an INNER JOIN that (by design) still
+ * included extra parts, since they do have an image_coordinates row (just
+ * with null x/y). This has now been brought in line with the admin
+ * controller's getPartsByImage: LEFT JOIN (slightly more defensive), the
+ * same radius/coordinate_id shape, so both endpoints stay consistent going
+ * forward. Behavior for parts that DO have a hotspot is unchanged.
  */
 router.get('/diagrams/:id/parts', async (req, res, next) => {
   try {
@@ -134,20 +142,60 @@ router.get('/diagrams/:id/parts', async (req, res, next) => {
       `SELECT p.id, p.serial_no, p.part_no, p.kubota_part_no, p.description, p.quantity, p.fm_code, p.created_at,
               ic.id AS coord_id, ic.x_coordinate, ic.y_coordinate, ic.radius
        FROM parts p
-       INNER JOIN image_coordinates ic ON ic.part_id = p.id
+       LEFT JOIN image_coordinates ic ON ic.part_id = p.id AND ic.image_id = ?
        WHERE ic.image_id = ?
        ORDER BY CAST(p.serial_no AS UNSIGNED) ASC`,
+      [uuidToBuffer(id), uuidToBuffer(id)]
+    );
+
+    const parts = rows.map((r) => {
+      const part = convertRow(r, PART_FIELDS);
+      const hasPosition = r.x_coordinate !== null && r.y_coordinate !== null;
+      part.coordinate = hasPosition
+        ? {
+            id: bufferToUuid(r.coord_id),
+            x_coordinate: parseFloat(r.x_coordinate),
+            y_coordinate: parseFloat(r.y_coordinate),
+            radius: r.radius !== null && r.radius !== undefined ? parseFloat(r.radius) : 2,
+          }
+        : null;
+      part.coordinate_id = r.coord_id ? bufferToUuid(r.coord_id) : null;
+      return part;
+    });
+
+    res.json({ success: true, parts });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/sections/:id/parts-no-diagram
+ * NEW — Public equivalent of the admin's getPartsBySection. Returns parts
+ * that are linked directly to this section (section_id) because there is
+ * no diagram uploaded for it yet — so there's no hotspot to place them on.
+ * These parts naturally stop appearing here (and start appearing via
+ * /diagrams/:id/parts instead) once they get placed on a diagram, since
+ * that's a separate, unrelated data path (image_coordinates) — nothing
+ * needs to change on this end when that happens.
+ */
+router.get('/sections/:id/parts-no-diagram', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    validateUUID(id, 'id');
+
+    const [rows] = await pool.query(
+      `SELECT id, serial_no, part_no, kubota_part_no, description, quantity, fm_code, created_at
+       FROM parts
+       WHERE section_id = ?
+       ORDER BY CAST(serial_no AS UNSIGNED) ASC`,
       [uuidToBuffer(id)]
     );
 
     const parts = rows.map((r) => {
       const part = convertRow(r, PART_FIELDS);
-      part.coordinate = {
-        id: bufferToUuid(r.coord_id),
-        x_coordinate: parseFloat(r.x_coordinate),
-        y_coordinate: parseFloat(r.y_coordinate),
-        radius: r.radius !== null && r.radius !== undefined ? parseInt(r.radius, 10) : 14,
-      };
+      part.coordinate = null;
+      part.coordinate_id = null;
       return part;
     });
 

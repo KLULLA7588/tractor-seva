@@ -17,6 +17,7 @@ export default function SubsectionDetailPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [diagramEntries, setDiagramEntries] = useState([]); // [{ image, parts }]
+  const [noDiagramParts, setNoDiagramParts] = useState([]); // parts linked directly to the subsection, no diagram yet
   const [selectedPart, setSelectedPart] = useState(null);
   const [showDrawer, setShowDrawer] = useState(false);
   const [showInquiryForm, setShowInquiryForm] = useState(false);
@@ -49,6 +50,10 @@ export default function SubsectionDetailPage() {
         }
         setDiagramEntries(entries);
         setActiveDiagramIndex(0);
+
+        // Load parts linked directly to this subsection (no diagram uploaded yet for them)
+        const noDiagramRes = await api.get(`/sections/${subId}/parts-no-diagram`);
+        setNoDiagramParts(noDiagramRes.parts || []);
       } catch (err) {
         console.error('Failed to load data:', err);
       } finally {
@@ -85,8 +90,12 @@ export default function SubsectionDetailPage() {
         part: p,
       }));
 
-  // Combined parts list across all diagrams, for the Parts table below
-  const allParts = diagramEntries.flatMap((e) => e.parts);
+  // Combined parts list: everything linked to a diagram, plus anything
+  // linked directly to the subsection with no diagram yet. De-duped by id
+  // in case a part somehow appears in both.
+  const diagramLinkedParts = diagramEntries.flatMap((e) => e.parts);
+  const seenIds = new Set(diagramLinkedParts.map((p) => p.id));
+  const allParts = [...diagramLinkedParts, ...noDiagramParts.filter((p) => !seenIds.has(p.id))];
 
   if (loading) {
     return (

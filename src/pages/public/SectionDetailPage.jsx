@@ -8,6 +8,7 @@ import { DiagramSkeleton, EmptyState } from '../../components/common/Skeleton';
 import DiagramViewer from '../../components/common/DiagramViewer';
 import PartDetailsDrawer from '../../components/common/PartDetailsDrawer';
 import InquiryForm from '../../components/forms/InquiryForm';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/Table';
 import Button from '../../components/ui/Button';
 import { Wrench } from 'lucide-react';
 import { api } from '../../lib/api-client';
@@ -18,6 +19,7 @@ export default function SectionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [section, setSection] = useState(null);
   const [diagramEntries, setDiagramEntries] = useState([]); // [{ image, parts }]
+  const [noDiagramParts, setNoDiagramParts] = useState([]); // parts linked directly to the section, no diagram yet
   const [subsections, setSubsections] = useState([]);
   const [selectedPart, setSelectedPart] = useState(null);
   const [showDrawer, setShowDrawer] = useState(false);
@@ -50,6 +52,10 @@ export default function SectionDetailPage() {
         }
         setDiagramEntries(entries);
         setActiveDiagramIndex(0);
+
+        // Load parts linked directly to this section (no diagram uploaded yet for them)
+        const noDiagramRes = await api.get(`/sections/${sectionId}/parts-no-diagram`);
+        setNoDiagramParts(noDiagramRes.parts || []);
 
         // Load subsections
         const subRes = await api.get(`/sections?harvester_id=${harvesterId}&parent_id=${sectionId}`);
@@ -85,7 +91,15 @@ export default function SectionDetailPage() {
       label: p.serial_no,
       part: p,
     }));
-  const totalParts = diagramEntries.reduce((sum, e) => sum + e.parts.length, 0);
+
+  // Combined parts list: everything linked to a diagram, plus anything
+  // linked directly to the section with no diagram yet. De-duped by id in
+  // case a part somehow appears in both (shouldn't normally happen, but
+  // this keeps the table safe either way).
+  const diagramLinkedParts = diagramEntries.flatMap((e) => e.parts);
+  const seenIds = new Set(diagramLinkedParts.map((p) => p.id));
+  const allParts = [...diagramLinkedParts, ...noDiagramParts.filter((p) => !seenIds.has(p.id))];
+  const totalParts = allParts.length;
 
   if (loading) {
     return (
@@ -227,9 +241,71 @@ export default function SectionDetailPage() {
           )}
         </div>
 
+        {/* Parts table — includes diagram-linked parts and parts with no diagram yet */}
+        {allParts.length > 0 && (
+          <div className="mt-12">
+            <h2 className="font-oswald text-2xl md:text-3xl font-bold text-text-black">
+              Parts
+            </h2>
+            <div className="mt-6 overflow-hidden rounded-2xl bg-white shadow-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Serial No</TableHead>
+                    <TableHead>Part No</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Qty</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allParts.map((part, index) => (
+                    <TableRow key={part.id}>
+                      <TableCell className="font-medium text-brand-navy">
+                        {index + 1}
+                      </TableCell>
+                      <TableCell className="font-mono-code text-text-black">
+                        {part.serial_no || '-'}
+                      </TableCell>
+                      <TableCell className="font-mono-code font-medium text-brand-navy">
+                        {part.part_no}
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate text-text-gray">
+                        {part.description || '-'}
+                      </TableCell>
+                      <TableCell>{part.quantity}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedPart(part);
+                              setShowDrawer(true);
+                            }}
+                          >
+                            Details
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleInquiry(part)}
+                          >
+                            Inquire
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
+
         {totalParts > 0 && (
           <p className="mt-4 text-sm text-text-gray">
-            {totalParts} part{totalParts > 1 ? 's' : ''} on this diagram
+            {totalParts} part{totalParts > 1 ? 's' : ''} total
           </p>
         )}
       </div>
