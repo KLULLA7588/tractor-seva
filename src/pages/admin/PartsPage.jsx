@@ -217,6 +217,20 @@ export default function PartsPage() {
   // NEW: which list drives the table on screen
   const displayedParts = viewMode === 'combined' ? combinedParts : parts;
 
+  // NEW — de-duplicate the TABLE rows to one row per part (by part.id), so
+  // a part with multiple hotspots (from the new "+" button) still shows as
+  // a single row here. This does NOT affect `hotspots` above (used by
+  // DiagramViewer), which still includes every coordinate — so the diagram
+  // keeps showing one dot per hotspot exactly as before; only the table
+  // collapses to one row per part.
+  const dedupedTableParts = useMemo(() => {
+    const seen = new Map();
+    displayedParts.forEach((p) => {
+      if (!seen.has(p.id)) seen.set(p.id, p);
+    });
+    return Array.from(seen.values());
+  }, [displayedParts]);
+
   // NEW: for a part in the merged Combined list, is it already placed on the diagram currently shown?
   const isPlacedOnActiveDiagram = (part) => {
     if (!diagram) return false;
@@ -408,7 +422,7 @@ export default function PartsPage() {
           <div>
             <div className="flex items-center justify-between">
               <h2 className="font-oswald text-lg font-semibold text-brand-navy">
-                Parts ({displayedParts.length})
+                Parts ({dedupedTableParts.length})
                 {viewMode === 'combined' && (
                   <span className="ml-2 align-middle text-xs font-normal text-text-gray">
                     across all diagrams — placing targets {currentTargetName}{selectedDiagramIndex > 0 ? ` ${selectedDiagramIndex + 1}` : ''}
@@ -426,7 +440,7 @@ export default function PartsPage() {
                 </button>
               )}
             </div>
-            {displayedParts.length === 0 ? (
+            {dedupedTableParts.length === 0 ? (
               <p className="mt-2 text-sm text-text-gray">No parts yet. Add your first part.</p>
             ) : (
               <div className="mt-2 overflow-hidden rounded-lg border border-border-subtle bg-white shadow-card">
@@ -440,7 +454,7 @@ export default function PartsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border-subtle">
-                    {displayedParts.map((part, i) => {
+                    {dedupedTableParts.map((part, i) => {
                       // In Separate mode this is identical to before. In Combined mode, "placed" is
                       // evaluated against whichever diagram tab is currently active, since the same
                       // part can have a hotspot on one diagram and not another.
