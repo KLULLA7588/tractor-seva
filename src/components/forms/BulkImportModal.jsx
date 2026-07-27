@@ -44,7 +44,10 @@ function parseRawText(text) {
   return mergedLines.map((line) => line.split(delimiter).map((cell) => cell.trim()));
 }
 
-export default function BulkImportModal({ open, onOpenChange, imageId, onSuccess }) {
+// NEW — sectionId is used as an alternative to imageId, for bulk-importing
+// parts into a section that has no diagram uploaded yet. Exactly one of
+// imageId / sectionId is expected to be passed in by the parent.
+export default function BulkImportModal({ open, onOpenChange, imageId, sectionId, onSuccess }) {
   const [step, setStep] = useState(1); // 1 = paste, 2 = map + preview
   const [rawRows, setRawRows] = useState([]);
   const [mapping, setMapping] = useState([]);
@@ -97,10 +100,12 @@ export default function BulkImportModal({ open, onOpenChange, imageId, onSuccess
     }
     setSubmitting(true);
     try {
-      const res = await api.post('/admin/parts/bulk', {
-        image_id: imageId,
-        rows: mappedRows,
-      });
+      // NEW — routes to the no-diagram bulk endpoint when there's no image
+      // yet for this section, otherwise behaves exactly as before.
+      const res = imageId
+        ? await api.post('/admin/parts/bulk', { image_id: imageId, rows: mappedRows })
+        : await api.post('/admin/parts/bulk-no-diagram', { section_id: sectionId, rows: mappedRows });
+
       const successCount = (res.created || 0) + (res.linked || 0);
       let message = `${successCount} part(s) added`;
       if (res.created > 0 && res.linked > 0) {

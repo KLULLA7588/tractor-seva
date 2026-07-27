@@ -13,14 +13,18 @@ import {
   bulkCreateParts,
   deletePartsByImage,
   addHotspotToExistingPart,
+  bulkCreatePartsNoDiagram,
+  getPartsBySection,
 } from '../controllers/partController.js';
 
 const router = express.Router();
 
 // Admin routes (auth required)
+router.get('/by-section', auth, getPartsBySection);
 router.get('/', auth, getPartsByImage);
 router.post('/', auth, createPart);
 router.post('/bulk', auth, bulkCreateParts);
+router.post('/bulk-no-diagram', auth, bulkCreatePartsNoDiagram);
 router.delete('/', auth, deletePartsByImage);
 router.put('/hotspots/:coordinate_id', auth, updateHotspot);
 router.post('/:id/hotspots', auth, addHotspotToExistingPart);

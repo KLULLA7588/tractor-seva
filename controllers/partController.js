@@ -19,6 +19,8 @@ const COORD_FIELDS = ['id', 'part_id', 'image_id'];
  * Create a part with an optional hotspot on a diagram.
  * If image_id is provided WITHOUT x_coordinate/y_coordinate, the part is
  * linked to the diagram as an "extra part" with no visible hotspot dot.
+ * If section_id is provided instead of image_id (NEW), the part is linked
+ * directly to a section that has no diagram yet — no hotspot involved.
  */
 export async function createPart(req, res, next) {
   try {
@@ -30,12 +32,14 @@ export async function createPart(req, res, next) {
       quantity,
       fm_code,
       image_id,
+      section_id, // NEW — optional, used when there's no diagram yet
       x_coordinate,
       y_coordinate,
       radius,
     } = req.body;
 
     validateRequired(req.body, ['part_no']);
+    if (section_id) validateUUID(section_id, 'section_id'); // NEW
 
     const partId = generateUUID();
     const qty = quantity !== undefined ? parseInt(quantity, 10) : 1;
@@ -52,10 +56,11 @@ export async function createPart(req, res, next) {
     }
 
     await pool.query(
-      `INSERT INTO parts (id, serial_no, part_no, kubota_part_no, description, quantity, fm_code)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO parts (id, section_id, serial_no, part_no, kubota_part_no, description, quantity, fm_code)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         uuidToBuffer(partId),
+        section_id ? uuidToBuffer(section_id) : null, // NEW
         finalSerialNo,
         part_no,
         kubota_part_no || null,
@@ -316,6 +321,113 @@ export async function bulkCreateParts(req, res, next) {
 }
 
 /**
+ * POST /api/admin/parts/bulk-no-diagram
+ * NEW — Bulk-create parts for a section that has NO diagram uploaded yet.
+ * Stores section_id directly on the part (image_coordinates is not
+ * involved at all, since there's no image to attach a hotspot to).
+ * Mirrors bulkCreateParts' exact per-row rules (part_no required,
+ * de-dupe within the paste, skip if part_no already exists for this
+ * section) — does not alter bulkCreateParts or any image-based flow.
+ */
+export async function bulkCreatePartsNoDiagram(req, res, next) {
+  const conn = await pool.getConnection();
+  try {
+    const { section_id, rows } = req.body;
+
+    validateRequired(req.body, ['section_id']);
+    validateUUID(section_id, 'section_id');
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      throw new BadRequestError('INVALID_INPUT', 'rows must be a non-empty array');
+    }
+
+    // Which part_no values already exist for THIS section (whether via
+    // section_id directly, or already linked to a diagram in this section)?
+    const [existingRows] = await pool.query(
+      `SELECT p.part_no
+       FROM parts p
+       LEFT JOIN image_coordinates ic ON ic.part_id = p.id
+       LEFT JOIN images im ON im.id = ic.image_id
+       WHERE p.section_id = ? OR im.section_id = ?`,
+      [uuidToBuffer(section_id), uuidToBuffer(section_id)]
+    );
+    const existingPartNos = new Set(existingRows.map((r) => r.part_no));
+
+    const createdParts = [];
+    const skipped = [];
+    const partValues = [];
+    const seenInThisBatch = new Set();
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i] || {};
+      const part_no = row.part_no ? String(row.part_no).trim() : '';
+
+      if (!part_no) {
+        skipped.push({ row: i + 1, reason: 'Missing Part No' });
+        continue;
+      }
+      if (seenInThisBatch.has(part_no)) {
+        skipped.push({ row: i + 1, reason: `Part No "${part_no}" appears more than once in this paste — only the first was used` });
+        continue;
+      }
+      if (existingPartNos.has(part_no)) {
+        skipped.push({ row: i + 1, reason: `Part No "${part_no}" already exists for this section` });
+        continue;
+      }
+      seenInThisBatch.add(part_no);
+
+      const partId = generateUUID();
+      const serial_no =
+        row.serial_no !== undefined && row.serial_no !== null && String(row.serial_no).trim() !== ''
+          ? String(row.serial_no).trim()
+          : null;
+      const kubota_part_no = row.kubota_part_no ? String(row.kubota_part_no).trim() : null;
+      const description = row.description ? String(row.description).trim() : null;
+      const quantity =
+        row.quantity !== undefined && row.quantity !== null && String(row.quantity).trim() !== ''
+          ? parseInt(row.quantity, 10)
+          : null;
+      const fm_code = null;
+
+      partValues.push([
+        uuidToBuffer(partId),
+        uuidToBuffer(section_id),
+        serial_no,
+        part_no,
+        kubota_part_no,
+        description,
+        quantity,
+        fm_code,
+      ]);
+
+      createdParts.push({ id: partId, serial_no, part_no, kubota_part_no, description, quantity, fm_code });
+    }
+
+    await conn.beginTransaction();
+
+    if (partValues.length > 0) {
+      await conn.query(
+        `INSERT INTO parts (id, section_id, serial_no, part_no, kubota_part_no, description, quantity, fm_code) VALUES ?`,
+        [partValues]
+      );
+    }
+
+    await conn.commit();
+    res.status(201).json({
+      success: true,
+      created: createdParts.length,
+      skipped,
+      parts: createdParts,
+    });
+  } catch (err) {
+    await conn.rollback();
+    next(err);
+  } finally {
+    conn.release();
+  }
+}
+
+/**
  * DELETE /api/admin/parts?image_id=uuid
  * Bulk-delete every part linked to a given diagram (image) in one request —
  * used for cleaning up an accidental duplicate bulk import, or clearing a
@@ -403,6 +515,46 @@ export async function getPartsByImage(req, res, next) {
       // is ever created). Does not change the existing `coordinate` field
       // or its behavior at all.
       part.coordinate_id = r.coord_id ? bufferToUuid(r.coord_id) : null;
+      return part;
+    });
+
+    res.json({ success: true, parts });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * GET /api/admin/parts/by-section?section_id=uuid
+ * NEW — Returns parts for a section that has NO diagram yet (section_id
+ * set directly on the part, coordinate always null since there's no image
+ * to place a hotspot on). Once a diagram is uploaded, these parts can be
+ * placed via the existing HotspotEditor flow (which calls
+ * addHotspotToExistingPart) — they are NOT duplicated, and this endpoint
+ * naturally stops returning them once they've been linked to an image
+ * (getPartsByImage takes over from there for that diagram).
+ */
+export async function getPartsBySection(req, res, next) {
+  try {
+    const { section_id } = req.query;
+
+    if (!section_id) {
+      throw new BadRequestError('INVALID_INPUT', 'section_id is required');
+    }
+    validateUUID(section_id, 'section_id');
+
+    const [rows] = await pool.query(
+      `SELECT id, serial_no, part_no, kubota_part_no, description, quantity, fm_code, created_at
+       FROM parts
+       WHERE section_id = ?
+       ORDER BY CAST(serial_no AS UNSIGNED) ASC`,
+      [uuidToBuffer(section_id)]
+    );
+
+    const parts = rows.map((r) => {
+      const part = convertRow(r, PART_FIELDS);
+      part.coordinate = null;
+      part.coordinate_id = null;
       return part;
     });
 

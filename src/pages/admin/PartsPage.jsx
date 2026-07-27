@@ -32,7 +32,7 @@ export default function PartsPage() {
   const [hotspotPart, setHotspotPart] = useState(null);
   const [extraMode, setExtraMode] = useState(false); // true = "Add Extra Part" flow
 
-  // --- NEW: Separate / Combined view mode (mirrors public SectionDetailPage/SubsectionDetailPage) ---
+  // --- Separate / Combined view mode (mirrors public SectionDetailPage/SubsectionDetailPage) ---
   const [viewMode, setViewMode] = useState('separate'); // 'separate' | 'combined'
   const [diagramPartsMap, setDiagramPartsMap] = useState({}); // { [diagramId]: parts[] } — cache per diagram, used to build the merged list
 
@@ -84,7 +84,7 @@ export default function PartsPage() {
             : [];
         setDiagrams(diagramList);
         setSelectedDiagramIndex(0);
-        // NEW: reset view mode + parts cache whenever we move to a different section/subsection
+        // reset view mode + parts cache whenever we move to a different section/subsection
         setViewMode('separate');
         setDiagramPartsMap({});
         const activeDiagram = diagramList[0] || null;
@@ -93,7 +93,7 @@ export default function PartsPage() {
           const partsRes = await api.get(`/admin/parts?image_id=${activeDiagram.id}`);
           const fetchedParts = partsRes.parts || [];
           setParts(fetchedParts);
-          setDiagramPartsMap((prev) => ({ ...prev, [activeDiagram.id]: fetchedParts })); // NEW
+          setDiagramPartsMap((prev) => ({ ...prev, [activeDiagram.id]: fetchedParts }));
         } else {
           setParts([]);
         }
@@ -119,7 +119,7 @@ export default function PartsPage() {
         const partsRes = await api.get(`/admin/parts?image_id=${activeDiagram.id}`);
         const fetchedParts = partsRes.parts || [];
         setParts(fetchedParts);
-        setDiagramPartsMap((prev) => ({ ...prev, [activeDiagram.id]: fetchedParts })); // NEW
+        setDiagramPartsMap((prev) => ({ ...prev, [activeDiagram.id]: fetchedParts }));
       } catch (err) {
         toast.error(err.message);
       }
@@ -127,7 +127,7 @@ export default function PartsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDiagramIndex]);
 
-  // NEW: when Combined mode is selected, make sure every diagram in this section has its parts loaded
+  // When Combined mode is selected, make sure every diagram in this section has its parts loaded
   // (the effects above only ever fetch the *active* diagram's parts, so on first switch to Combined
   // any diagram the admin hasn't visited yet would be missing from the merged list otherwise).
   useEffect(() => {
@@ -158,7 +158,7 @@ export default function PartsPage() {
         const partsRes = await api.get(`/admin/parts?image_id=${diagram.id}`);
         const fetchedParts = partsRes.parts || [];
         setParts(fetchedParts);
-        setDiagramPartsMap((prev) => ({ ...prev, [diagram.id]: fetchedParts })); // NEW
+        setDiagramPartsMap((prev) => ({ ...prev, [diagram.id]: fetchedParts }));
       } catch (err) {
         toast.error(err.message);
       }
@@ -202,7 +202,7 @@ export default function PartsPage() {
       part: p,
     }));
 
-  // NEW: merged, de-duplicated parts list across every diagram in this section (Combined mode only)
+  // Merged, de-duplicated parts list across every diagram in this section (Combined mode only)
   const combinedParts = useMemo(() => {
     const seen = new Map();
     diagrams.forEach((d) => {
@@ -214,11 +214,11 @@ export default function PartsPage() {
     return Array.from(seen.values());
   }, [diagrams, diagramPartsMap]);
 
-  // NEW: which list drives the table on screen
+  // Which list drives the table on screen
   const displayedParts = viewMode === 'combined' ? combinedParts : parts;
 
-  // NEW — de-duplicate the TABLE rows to one row per part (by part.id), so
-  // a part with multiple hotspots (from the new "+" button) still shows as
+  // De-duplicate the TABLE rows to one row per part (by part.id), so
+  // a part with multiple hotspots (from the "+" button) still shows as
   // a single row here. This does NOT affect `hotspots` above (used by
   // DiagramViewer), which still includes every coordinate — so the diagram
   // keeps showing one dot per hotspot exactly as before; only the table
@@ -231,7 +231,7 @@ export default function PartsPage() {
     return Array.from(seen.values());
   }, [displayedParts]);
 
-  // NEW: for a part in the merged Combined list, is it already placed on the diagram currently shown?
+  // For a part in the merged Combined list, is it already placed on the diagram currently shown?
   const isPlacedOnActiveDiagram = (part) => {
     if (!diagram) return false;
     const activeList = diagramPartsMap[diagram.id] || [];
@@ -304,7 +304,7 @@ export default function PartsPage() {
         )}
       </div>
 
-      {/* NEW: Separate/Combined toggle — only shown when this section/subsection has more than one diagram */}
+      {/* Separate/Combined toggle — only shown when this section/subsection has more than one diagram */}
       {!loading && diagrams.length > 1 && !hotspotMode && (
         <div className="mt-4 inline-flex rounded-md border border-border-subtle bg-white p-1">
           <button
@@ -348,9 +348,14 @@ export default function PartsPage() {
 
       {loading && <p className="mt-4 text-sm text-text-gray">Loading...</p>}
 
+      {/* NEW — when a section/subsection is selected but has no diagram, show a parts list +
+          bulk-import option instead of just an empty state, so parts can be added ahead of time. */}
       {!loading && selectedSection && !diagram && (
-        <div className="mt-6">
-          <EmptyState icon={Wrench} title="No diagram" message="Upload a diagram for this section first." />
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div>
+            <EmptyState icon={Wrench} title="No diagram" message="Upload a diagram for this section first." />
+          </div>
+          <NoDiagramPartsList sectionId={selectedSubsection || selectedSection} />
         </div>
       )}
 
@@ -376,7 +381,7 @@ export default function PartsPage() {
                 }}
               />
             ) : viewMode === 'combined' && diagrams.length > 1 ? (
-              // NEW: Combined mode shows every diagram in this section stacked, each with its own
+              // Combined mode shows every diagram in this section stacked, each with its own
               // hotspots. Click a diagram to make it "active" (highlighted) — that's the one
               // new placements from the table on the right will land on.
               <div className="space-y-4">
@@ -507,7 +512,7 @@ export default function PartsPage() {
                                 </button>
                               ) : null}
 
-                              {/* NEW — always available: add ANOTHER hotspot for this same part on
+                              {/* Always available: add ANOTHER hotspot for this same part on
                                   the currently active diagram. Reuses the exact same flow as the
                                   "Place on this diagram" button above (HotspotEditor's Case 4 →
                                   addHotspotToExistingPart), just triggerable regardless of whether
@@ -600,6 +605,139 @@ export default function PartsPage() {
         onConfirm={handleDeleteAll}
         title="Delete All Parts"
         message={`This will permanently delete all ${parts.length} part(s) on this diagram, including their hotspots. This cannot be undone.`}
+      />
+    </div>
+  );
+}
+
+/**
+ * NEW — shown instead of a plain empty state when a section/subsection has
+ * been selected but has no diagram uploaded yet. Lets the admin add parts
+ * (single or bulk) ahead of time, tied directly to the section via
+ * section_id. Once a diagram is later uploaded for this section, these
+ * parts are placed as hotspots through the existing HotspotEditor flow —
+ * nothing here duplicates or interferes with that.
+ */
+function NoDiagramPartsList({ sectionId }) {
+  const [parts, setParts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [showBulk, setShowBulk] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+
+  const load = async () => {
+    if (!sectionId) return;
+    setLoading(true);
+    try {
+      const res = await api.get(`/admin/parts/by-section?section_id=${sectionId}`);
+      setParts(res.parts || []);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, [sectionId]);
+
+  const handleDelete = async () => {
+    try {
+      await api.delete(`/admin/parts/${deleteId}`);
+      toast.success('Part deleted');
+      setDeleteId(null);
+      load();
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <h2 className="font-oswald text-lg font-semibold text-brand-navy">
+          Parts ({parts.length}) — no diagram yet
+        </h2>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-b from-[#1B2870] to-[#172263] px-3 py-1.5 text-xs font-semibold text-white shadow-button hover:brightness-110"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Part
+          </button>
+          <button
+            onClick={() => setShowBulk(true)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-brand-navy px-3 py-1.5 text-xs font-semibold text-brand-navy hover:bg-bg-light"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Bulk Upload
+          </button>
+        </div>
+      </div>
+      <p className="mt-1 text-xs text-text-gray">
+        These parts aren't linked to any hotspot yet. Once you upload a diagram for this section, you'll be able to place each one on it.
+      </p>
+
+      {loading ? (
+        <p className="mt-4 text-sm text-text-gray">Loading...</p>
+      ) : parts.length === 0 ? (
+        <p className="mt-4 text-sm text-text-gray">No parts yet. Add your first part or bulk-upload a list.</p>
+      ) : (
+        <div className="mt-3 overflow-hidden rounded-lg border border-border-subtle bg-white shadow-card">
+          <table className="w-full">
+            <thead className="border-b border-border-subtle bg-bg-light">
+              <tr>
+                <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-text-gray">#</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-text-gray">Part No</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-text-gray">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border-subtle">
+              {parts.map((part, i) => (
+                <tr key={part.id} className="hover:bg-bg-light">
+                  <td className="px-3 py-2 text-sm font-medium text-brand-navy">{part.serial_no || i + 1}</td>
+                  <td className="px-3 py-2 text-sm font-mono-code text-text-black">{part.part_no}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex justify-end gap-1.5">
+                      <button onClick={() => setDeleteId(part.id)} className="rounded-md p-1 text-text-gray hover:text-brand-red">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <PartForm
+        open={showForm}
+        onOpenChange={setShowForm}
+        partsCount={parts.length}
+        onSuccess={async (partData) => {
+          try {
+            await api.post('/admin/parts', { ...partData, section_id: sectionId });
+            toast.success('Part added');
+            setShowForm(false);
+            load();
+          } catch (err) {
+            toast.error(err.message);
+          }
+        }}
+      />
+      <BulkImportModal
+        open={showBulk}
+        onOpenChange={setShowBulk}
+        sectionId={sectionId}
+        onSuccess={() => { setShowBulk(false); load(); }}
+      />
+      <ConfirmDialog
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Delete Part"
+        message="This will permanently delete this part."
       />
     </div>
   );
