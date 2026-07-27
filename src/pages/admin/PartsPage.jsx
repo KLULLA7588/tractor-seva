@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Wrench, Plus, Pencil, Trash2, Move, Upload, MapPin } from 'lucide-react';
+import { Wrench, Plus, Pencil, Trash2, Move, Upload, MapPin, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApi } from '../../hooks/useApi';
 import { api } from '../../lib/api-client';
@@ -492,6 +492,27 @@ export default function PartsPage() {
                                   <MapPin className="h-3.5 w-3.5" />
                                 </button>
                               ) : null}
+
+                              {/* NEW — always available: add ANOTHER hotspot for this same part on
+                                  the currently active diagram. Reuses the exact same flow as the
+                                  "Place on this diagram" button above (HotspotEditor's Case 4 →
+                                  addHotspotToExistingPart), just triggerable regardless of whether
+                                  this part already has a hotspot here. Does not replace or alter
+                                  any of the existing buttons. */}
+                              <button
+                                onClick={() => {
+                                  const basePartRecord = viewMode === 'combined'
+                                    ? (diagramPartsMap[diagram.id] || []).find((p) => p.id === part.id) || part
+                                    : part;
+                                  setHotspotPart({ ...basePartRecord, coordinate: null, coordinate_id: null });
+                                  setHotspotMode(true);
+                                }}
+                                className="rounded-md p-1 text-text-gray hover:text-brand-navy"
+                                title="Add another hotspot for this part"
+                              >
+                                <PlusCircle className="h-3.5 w-3.5" />
+                              </button>
+
                               <button onClick={() => { setEditPart(part); setShowPartForm(true); }}
                                 className="rounded-md p-1 text-text-gray hover:text-brand-navy">
                                 <Pencil className="h-3.5 w-3.5" />

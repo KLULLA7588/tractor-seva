@@ -355,6 +355,10 @@ export async function deletePartsByImage(req, res, next) {
  * Get all parts for a given diagram (image), including parts that have
  * no hotspot position (extra parts). Parts WITH a hotspot include their
  * x/y/radius under `coordinate`; parts without one have `coordinate: null`.
+ *
+ * NOTE: if a part has MULTIPLE hotspots on this image (new feature below),
+ * this query naturally returns one row per hotspot via the existing
+ * LEFT JOIN — no change was needed here.
  */
 export async function getPartsByImage(req, res, next) {
   try {
@@ -550,7 +554,12 @@ export async function deletePart(req, res, next) {
  * This is different from updateHotspot (which only updates a coordinate
  * ROW THAT ALREADY EXISTS) — here, no row exists yet for (part_id, image_id).
  *
- * NEW — does not modify any existing function above.
+ * UPDATED — the duplicate-prevention check that used to block a SECOND
+ * hotspot for the same (part_id, image_id) pair has been removed below,
+ * so a part can now have multiple hotspots on the same diagram (matches
+ * the corresponding DB constraint being dropped via a separate migration
+ * you ran in MySQL Workbench: ALTER TABLE image_coordinates DROP INDEX
+ * unique_part_image). Nothing else in this function changed.
  */
 export async function addHotspotToExistingPart(req, res, next) {
   try {
@@ -573,16 +582,6 @@ export async function addHotspotToExistingPart(req, res, next) {
     const [imageRows] = await pool.query('SELECT id FROM images WHERE id = ?', [uuidToBuffer(image_id)]);
     if (imageRows.length === 0) {
       throw new NotFoundError('IMAGE_NOT_FOUND', 'Diagram not found');
-    }
-
-    // Same unique-constraint check createPart already does — prevents a
-    // second hotspot for the same part on the same image.
-    const [existingCoord] = await pool.query(
-      'SELECT id FROM image_coordinates WHERE part_id = ? AND image_id = ?',
-      [uuidToBuffer(id), uuidToBuffer(image_id)]
-    );
-    if (existingCoord.length > 0) {
-      throw new ConflictError('CONFLICT', 'A hotspot for this part and image already exists');
     }
 
     // radius is a PERCENTAGE — use parseFloat so decimals (e.g. 2.3) survive,
