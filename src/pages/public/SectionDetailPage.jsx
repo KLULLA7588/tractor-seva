@@ -186,13 +186,13 @@ export default function SectionDetailPage() {
 
       <div className="mx-auto max-w-7xl px-4 py-8 md:px-6">
         <div>
-          {diagramEntries.length === 0 ? (
+          {diagramEntries.length === 0 && allParts.length === 0 ? (
             <EmptyState
               icon={Wrench}
               title="No diagram available"
               message="This section doesn't have a diagram yet."
             />
-          ) : viewMode === 'separate' && diagramEntries.length > 1 ? (
+          ) : diagramEntries.length === 0 ? null : viewMode === 'separate' && diagramEntries.length > 1 ? (
             <div>
               <div className="mb-4 flex flex-wrap gap-2">
                 {diagramEntries.map((entry, idx) => (
