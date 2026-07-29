@@ -12,16 +12,8 @@ export default function Footer() {
               <img
                 src="/nav logo.jpeg"
                 alt="Tractor Seva"
-                 className="h-14 w-auto object-contain"
+                className="h-12 w-auto object-contain"
               />
-              <div className="flex flex-col leading-none">
-                <span className="font-oswald text-sm font-bold uppercase tracking-wide text-white">
-                  Tractor
-                </span>
-                <span className="font-oswald text-sm font-bold uppercase tracking-wide text-brand-red">
-                  Seva
-                </span>
-              </div>
             </Link>
             <p className="mt-5 text-sm leading-relaxed text-white/50">
               Industrial parts catalog for harvester models. Identify and order
