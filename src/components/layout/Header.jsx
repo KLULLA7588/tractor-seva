@@ -20,10 +20,12 @@ export default function Header({ isAdmin = false, onMenuClick }) {
           </button>
         )}
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-red shadow-button">
-            <Tractor className="h-5 w-5 text-white" strokeWidth={2} />
-          </div>
-          <div className="flex flex-col leading-none">
+  <img
+    src="/nav logo.jpeg"
+    alt="Tractor Seva"
+    className="h-9 w-9 object-contain"
+  />
+  <div className="flex flex-col leading-none">
             <span className="font-oswald text-sm font-bold uppercase tracking-wide text-white">
               Tractor
             </span>

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Tractor, Phone, Mail, MapPin, Clock, ArrowRight } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock, ArrowRight } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -9,9 +9,11 @@ export default function Footer() {
           {/* Brand */}
           <div className="md:col-span-1">
             <Link to="/" className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-red">
-                <Tractor className="h-5 w-5 text-white" />
-              </div>
+              <img
+                src="/nav logo.jpeg"
+                alt="Tractor Seva"
+                className="h-9 w-9 object-contain"
+              />
               <div className="flex flex-col leading-none">
                 <span className="font-oswald text-sm font-bold uppercase tracking-wide text-white">
                   Tractor
