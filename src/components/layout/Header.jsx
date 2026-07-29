@@ -23,9 +23,9 @@ export default function Header({ isAdmin = false, onMenuClick }) {
   <img
     src="/nav logo.jpeg"
     alt="Tractor Seva"
-     className="h-14 w-auto object-contain"
+     className="h-13 w-auto object-contain"
   />
-  <div className="flex flex-col leading-none">
+  {/* <div className="flex flex-col leading-none">
             <span className="font-oswald text-sm font-bold uppercase tracking-wide text-white">
               Tractor
             </span>
@@ -34,7 +34,7 @@ export default function Header({ isAdmin = false, onMenuClick }) {
             </span>
           </div>
         </Link>
-      </div>
+      </div> */}
 
       {/* Nav links */}
       {!isAdmin && (
