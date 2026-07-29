@@ -12,7 +12,7 @@ export default function Footer() {
               <img
                 src="/nav logo.jpeg"
                 alt="Tractor Seva"
-                className="h-9 w-9 object-contain"
+                 className="h-14 w-auto object-contain"
               />
               <div className="flex flex-col leading-none">
                 <span className="font-oswald text-sm font-bold uppercase tracking-wide text-white">
