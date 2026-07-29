@@ -23,7 +23,7 @@ export default function Header({ isAdmin = false, onMenuClick }) {
           <img
             src="/nav logo.jpeg"
             alt="Tractor Seva"
-            className="h-13 w-auto object-contain"
+            className="h-12 w-auto object-contain"
           />
         </Link>
       </div>
