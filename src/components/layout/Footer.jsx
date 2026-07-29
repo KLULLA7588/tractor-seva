@@ -4,7 +4,7 @@ import { Phone, Mail, MapPin, Clock, ArrowRight } from 'lucide-react';
 export default function Footer() {
   return (
     <footer className="bg-gradient-to-b from-brand-navy-dark to-[#080D2E] text-white">
-      <div className="mx-auto max-w-7xl px-4 py-14 md:px-8 md:py-20">
+      <div className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-12">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-4 md:gap-8">
           {/* Brand */}
           <div className="md:col-span-1">
@@ -93,7 +93,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-7 md:flex-row">
+        <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-5 md:flex-row">
           <p className="text-xs text-white/35">
             © {new Date().getFullYear()} Tractor Seva. All rights reserved.
           </p>
