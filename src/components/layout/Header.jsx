@@ -20,21 +20,13 @@ export default function Header({ isAdmin = false, onMenuClick }) {
           </button>
         )}
         <Link to="/" className="flex items-center gap-2.5">
-  <img
-    src="/nav logo.jpeg"
-    alt="Tractor Seva"
-     className="h-13 w-auto object-contain"
-  />
-  {/* <div className="flex flex-col leading-none">
-            <span className="font-oswald text-sm font-bold uppercase tracking-wide text-white">
-              Tractor
-            </span>
-            <span className="font-oswald text-sm font-bold uppercase tracking-wide text-brand-red">
-              Seva
-            </span>
-          </div>
+          <img
+            src="/nav logo.jpeg"
+            alt="Tractor Seva"
+            className="h-13 w-auto object-contain"
+          />
         </Link>
-      </div> */}
+      </div>
 
       {/* Nav links */}
       {!isAdmin && (
